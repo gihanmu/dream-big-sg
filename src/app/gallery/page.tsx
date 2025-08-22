@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore, GeneratedPoster } from '@/lib/store';
 import { useAuth } from '@/hooks/useAuth';
+import { getCareerDisplayName, getLocationDisplayName } from '@/lib/prompts';
 
 export default function GalleryPage() {
   const router = useRouter();
@@ -41,34 +42,108 @@ export default function GalleryPage() {
     document.body.removeChild(link);
   };
 
-  const handlePrint = (poster: GeneratedPoster) => {
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>Superhero Poster - ${poster.id}</title>
-            <style>
-              body { margin: 0; padding: 20px; text-align: center; font-family: Arial, sans-serif; }
-              .poster { max-width: 100%; height: auto; border: 2px solid #333; border-radius: 10px; }
-              .info { margin-top: 20px; }
-              @media print { body { padding: 0; } .info { display: none; } }
-            </style>
-          </head>
-          <body>
-            <img src="${poster.imageUrl}" alt="Superhero Poster" class="poster" />
-            <div class="info">
-              <h2>Singapore Superhero</h2>
-              <p><strong>Career:</strong> ${poster.data.career}</p>
-              <p><strong>Location:</strong> ${poster.data.background}</p>
-              <p><strong>Activity:</strong> ${poster.data.activity}</p>
-              <p><strong>Created:</strong> ${new Date(poster.createdAt).toLocaleDateString()}</p>
-            </div>
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-      printWindow.print();
+  const handlePrint = async (poster: GeneratedPoster) => {
+    try {
+      // Create a canvas to combine the image with logos
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        throw new Error('Could not get canvas context');
+      }
+
+      // Set canvas size (poster dimensions)
+      canvas.width = 1024;
+      canvas.height = 768;
+
+      // Load the generated poster image
+      const posterImg = new window.Image();
+      posterImg.crossOrigin = 'anonymous';
+      
+      await new Promise((resolve, reject) => {
+        posterImg.onload = resolve;
+        posterImg.onerror = reject;
+        posterImg.src = poster.imageUrl;
+      });
+
+      // Draw the poster image (full size)
+      ctx.drawImage(posterImg, 0, 0, canvas.width, canvas.height);
+
+      // Load and draw Google logo (top-left)
+      try {
+        const googleImg = new window.Image();
+        googleImg.crossOrigin = 'anonymous';
+        
+        await new Promise((resolve, reject) => {
+          googleImg.onload = resolve;
+          googleImg.onerror = reject;
+          googleImg.src = '/images/google.png';
+        });
+
+        // Draw Google logo with semi-transparent white background
+        const logoSize = 80;
+        const padding = 16;
+        
+        // White background for Google logo
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.fillRect(padding, padding, logoSize + 16, logoSize + 16);
+        
+        // Draw Google logo
+        ctx.drawImage(googleImg, padding + 8, padding + 8, logoSize, logoSize);
+      } catch (error) {
+        console.warn('Could not load Google logo:', error);
+      }
+
+      // Load and draw NCS logo (top-right)
+      try {
+        const ncsImg = new window.Image();
+        ncsImg.crossOrigin = 'anonymous';
+        
+        await new Promise((resolve, reject) => {
+          ncsImg.onload = resolve;
+          ncsImg.onerror = reject;
+          ncsImg.src = '/images/ncs.jpg';
+        });
+
+        // Draw NCS logo with semi-transparent white background
+        const logoSize = 80;
+        const padding = 16;
+        
+        // White background for NCS logo
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.fillRect(canvas.width - logoSize - padding - 16, padding, logoSize + 16, logoSize + 16);
+        
+        // Draw NCS logo
+        ctx.drawImage(ncsImg, canvas.width - logoSize - padding - 8, padding + 8, logoSize, logoSize);
+      } catch (error) {
+        console.warn('Could not load NCS logo:', error);
+      }
+
+      // Add event branding text at the bottom
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+      ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
+      
+      ctx.fillStyle = 'white';
+      ctx.font = 'bold 16px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('Dream Big Singapore - A Google Cloud & NCS Initiative', canvas.width / 2, canvas.height - 20);
+
+      // Convert to blob and download
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `superhero-poster-${getCareerDisplayName(poster.data.career).toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.png`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        }
+      }, 'image/png');
+
+    } catch (error) {
+      console.error('Error creating printable poster:', error);
+      alert('Sorry, there was an error creating your printable poster. Please try again.');
     }
   };
 
@@ -197,8 +272,8 @@ export default function GalleryPage() {
                 {/* Poster Info */}
                 <div className="p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-bold text-gray-800 capitalize">
-                      {poster.data.career} Hero
+                    <h3 className="font-bold text-gray-800">
+                      {getCareerDisplayName(poster.data.career)} Hero
                     </h3>
                     <div className="flex gap-1">
                       {poster.badges?.map((badge, idx) => (
@@ -213,7 +288,7 @@ export default function GalleryPage() {
                   </div>
                   
                   <p className="text-sm text-gray-600 mb-2">
-                    📍 {poster.data.background?.replace('-', ' ')}
+                    📍 {getLocationDisplayName(poster.data.background)}
                   </p>
                   
                   <p className="text-xs text-gray-500 mb-3 line-clamp-2">
@@ -310,7 +385,7 @@ export default function GalleryPage() {
                 {/* Header */}
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-2xl font-bold text-gray-800">
-                    {selectedPoster.data.career} Superhero
+                    {getCareerDisplayName(selectedPoster.data.career)} Superhero
                   </h2>
                   <button
                     onClick={handleCloseLightbox}
@@ -331,11 +406,11 @@ export default function GalleryPage() {
                 <div className="space-y-3">
                   <div>
                     <strong className="text-purple-600">Career:</strong>
-                    <span className="ml-2 capitalize">{selectedPoster.data.career}</span>
+                    <span className="ml-2">{getCareerDisplayName(selectedPoster.data.career)}</span>
                   </div>
                   <div>
                     <strong className="text-purple-600">Location:</strong>
-                    <span className="ml-2">{selectedPoster.data.background?.replace('-', ' ')}</span>
+                    <span className="ml-2">{getLocationDisplayName(selectedPoster.data.background)}</span>
                   </div>
                   <div>
                     <strong className="text-purple-600">Activity:</strong>

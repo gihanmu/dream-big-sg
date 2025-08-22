@@ -24,6 +24,71 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              // Remove browser extension attributes before React hydration
+              (function() {
+                // List of known browser extension attributes that cause hydration issues
+                const extensionAttributes = [
+                  'cz-shortcut-listen',
+                  'data-new-gr-c-s-check-loaded',
+                  'data-gr-ext-installed',
+                  'data-lt-installed',
+                  'data-gramm',
+                  'data-gramm_editor',
+                  'data-enable-grammarly'
+                ];
+                
+                // Clean existing attributes
+                function cleanExtensionAttributes() {
+                  extensionAttributes.forEach(attr => {
+                    const elements = document.querySelectorAll('[' + attr + ']');
+                    elements.forEach(el => el.removeAttribute(attr));
+                  });
+                }
+                
+                // Run cleanup immediately
+                if (document.readyState === 'loading') {
+                  document.addEventListener('DOMContentLoaded', cleanExtensionAttributes);
+                } else {
+                  cleanExtensionAttributes();
+                }
+                
+                // Set up MutationObserver to prevent future injections
+                if (typeof MutationObserver !== 'undefined') {
+                  const observer = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) {
+                      if (mutation.type === 'attributes') {
+                        const attrName = mutation.attributeName;
+                        if (attrName && extensionAttributes.includes(attrName)) {
+                          mutation.target.removeAttribute(attrName);
+                        }
+                      }
+                    });
+                  });
+                  
+                  // Start observing once DOM is ready
+                  function startObserving() {
+                    observer.observe(document.body || document.documentElement, {
+                      attributes: true,
+                      attributeFilter: extensionAttributes,
+                      subtree: true
+                    });
+                  }
+                  
+                  if (document.body) {
+                    startObserving();
+                  } else {
+                    document.addEventListener('DOMContentLoaded', startObserving);
+                  }
+                }
+              })();
+            `,
+          }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
+import { getCareerDisplayName, getLocationDisplayName } from '@/lib/prompts';
 
 interface PosterFrameProps {
   imageUrl: string;
@@ -82,34 +83,110 @@ export default function PosterFrame({
     }
   };
 
-  const handlePrint = () => {
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>Superhero Poster - ${title}</title>
-            <style>
-              body { margin: 0; padding: 20px; text-align: center; font-family: Arial, sans-serif; }
-              .poster { max-width: 100%; height: auto; border: 2px solid #333; border-radius: 10px; }
-              .info { margin-top: 20px; }
-              @media print { body { padding: 0; } .info { display: none; } }
-            </style>
-          </head>
-          <body>
-            <img src="${imageUrl}" alt="Superhero Poster" class="poster" />
-            <div class="info">
-              <h2>${title}</h2>
-              <p><strong>Career:</strong> ${career}</p>
-              <p><strong>Location:</strong> ${background}</p>
-              <p><strong>Activity:</strong> ${activity}</p>
-            </div>
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-      printWindow.print();
+  const handlePrint = async () => {
+    try {
+      // Create a canvas to combine the image with logos
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        throw new Error('Could not get canvas context');
+      }
+
+      // Set canvas size (poster dimensions)
+      canvas.width = 1024;
+      canvas.height = 768;
+
+      // Load the generated poster image
+      const posterImg = new window.Image();
+      posterImg.crossOrigin = 'anonymous';
+      
+      await new Promise((resolve, reject) => {
+        posterImg.onload = resolve;
+        posterImg.onerror = reject;
+        posterImg.src = imageUrl;
+      });
+
+      // Draw the poster image (full size)
+      ctx.drawImage(posterImg, 0, 0, canvas.width, canvas.height);
+
+      // Load and draw Google logo (top-left)
+      try {
+        const googleImg = new window.Image();
+        googleImg.crossOrigin = 'anonymous';
+        
+        await new Promise((resolve, reject) => {
+          googleImg.onload = resolve;
+          googleImg.onerror = reject;
+          googleImg.src = '/images/google.png';
+        });
+
+        // Draw Google logo with semi-transparent white background
+        const logoSize = 80;
+        const padding = 16;
+        
+        // White background for Google logo
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.fillRect(padding, padding, logoSize + 16, logoSize + 16);
+        
+        // Draw Google logo
+        ctx.drawImage(googleImg, padding + 8, padding + 8, logoSize, logoSize);
+      } catch (error) {
+        console.warn('Could not load Google logo:', error);
+      }
+
+      // Load and draw NCS logo (top-right)
+      try {
+        const ncsImg = new window.Image();
+        ncsImg.crossOrigin = 'anonymous';
+        
+        await new Promise((resolve, reject) => {
+          ncsImg.onload = resolve;
+          ncsImg.onerror = reject;
+          ncsImg.src = '/images/ncs.jpg';
+        });
+
+        // Draw NCS logo with semi-transparent white background
+        const logoSize = 80;
+        const padding = 16;
+        
+        // White background for NCS logo
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.fillRect(canvas.width - logoSize - padding - 16, padding, logoSize + 16, logoSize + 16);
+        
+        // Draw NCS logo
+        ctx.drawImage(ncsImg, canvas.width - logoSize - padding - 8, padding + 8, logoSize, logoSize);
+      } catch (error) {
+        console.warn('Could not load NCS logo:', error);
+      }
+
+      // Add event branding text at the bottom
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+      ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
+      
+      ctx.fillStyle = 'white';
+      ctx.font = 'bold 16px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('Dream Big Singapore - A Google Cloud & NCS Initiative', canvas.width / 2, canvas.height - 20);
+
+      // Convert to blob and download
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `superhero-poster-${getCareerDisplayName(career).toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.png`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        }
+      }, 'image/png');
+
+    } catch (error) {
+      console.error('Error creating printable poster:', error);
+      alert('Sorry, there was an error creating your printable poster. Please try again.');
     }
+    
     onPrint();
   };
 
@@ -232,11 +309,11 @@ export default function PosterFrame({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
           <div>
             <h3 className="font-bold text-purple-600 mb-1">Career</h3>
-            <p className="text-gray-700">{career}</p>
+            <p className="text-gray-700">{getCareerDisplayName(career)}</p>
           </div>
           <div>
             <h3 className="font-bold text-purple-600 mb-1">Location</h3>
-            <p className="text-gray-700">{background}</p>
+            <p className="text-gray-700">{getLocationDisplayName(background)}</p>
           </div>
           <div>
             <h3 className="font-bold text-purple-600 mb-1">Activity</h3>

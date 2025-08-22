@@ -8,9 +8,10 @@ import Camera from '@/components/Camera';
 import CareerTypeahead from '@/components/CareerTypeahead';
 import CustomCareerModal from '@/components/CustomCareerModal';
 import LocationImageGrid from '@/components/LocationImageGrid';
+import ActivitySuggestions from '@/components/ActivitySuggestions';
 import { PosterData } from '@/lib/prompts';
 import { CareerOption } from '@/lib/careers';
-import { LocationOption } from '@/lib/locations';
+import { LocationOption, LOCATION_OPTIONS } from '@/lib/locations';
 import { useAppStore } from '@/lib/store';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -18,8 +19,7 @@ const dreamSchema = z.object({
   career: z.string().min(1, 'Please select a career'),
   background: z.string().min(1, 'Please select a location'),
   activity: z.string().min(3, 'Please describe an activity (at least 3 characters)'),
-  selfieDataUrl: z.string().optional(),
-  avatarSelection: z.string().optional()
+  selfieDataUrl: z.string().min(1, 'Please take a selfie photo')
 });
 
 type DreamFormData = z.infer<typeof dreamSchema>;
@@ -34,8 +34,7 @@ export default function DreamPage() {
     career: currentPosterData.career || '',
     background: currentPosterData.background || '',
     activity: currentPosterData.activity || '',
-    selfieDataUrl: undefined,
-    avatarSelection: undefined
+    selfieDataUrl: ''
   });
   const [errors, setErrors] = useState<Partial<Record<keyof DreamFormData, string>>>({});
   const [isGenerating, setIsGenerating] = useState(false);
@@ -71,8 +70,8 @@ export default function DreamPage() {
         }
         break;
       case 3:
-        if (!formData.selfieDataUrl && !formData.avatarSelection) {
-          stepErrors.selfieDataUrl = 'Please take a selfie or choose an avatar';
+        if (!formData.selfieDataUrl) {
+          stepErrors.selfieDataUrl = 'Please take a selfie photo';
         }
         break;
     }
@@ -134,10 +133,10 @@ export default function DreamPage() {
 
       updatePosterData(posterData);
 
-      // Store image data separately if available
-      if (formData.selfieDataUrl || formData.avatarSelection) {
-        sessionStorage.setItem('dreamBigSelfie', formData.selfieDataUrl || '');
-        sessionStorage.setItem('dreamBigAvatar', formData.avatarSelection || '');
+      // Store camera image data
+      if (formData.selfieDataUrl) {
+        sessionStorage.setItem('dreamBigSelfie', formData.selfieDataUrl);
+        sessionStorage.removeItem('dreamBigAvatar'); // Clear any old avatar data
       }
 
       router.push('/result');
@@ -183,6 +182,8 @@ export default function DreamPage() {
         );
 
       case 2:
+        const selectedLocation = LOCATION_OPTIONS.find(loc => loc.value === formData.background);
+        
         return (
           <motion.div
             key="activity"
@@ -191,6 +192,12 @@ export default function DreamPage() {
             exit={{ opacity: 0, x: -50 }}
             className="space-y-6 max-w-md mx-auto"
           >
+            <ActivitySuggestions
+              selectedLocation={selectedLocation || null}
+              currentActivity={formData.activity}
+              onActivityAdd={(newActivity) => setFormData({ ...formData, activity: newActivity })}
+            />
+            
             <div>
               <textarea
                 value={formData.activity}
@@ -221,16 +228,7 @@ export default function DreamPage() {
               onCapture={(imageDataUrl) => {
                 setFormData({ 
                   ...formData, 
-                  selfieDataUrl: imageDataUrl,
-                  avatarSelection: undefined 
-                });
-                setErrors({ ...errors, selfieDataUrl: undefined });
-              }}
-              onSelectAvatar={(avatar) => {
-                setFormData({ 
-                  ...formData, 
-                  avatarSelection: avatar,
-                  selfieDataUrl: undefined 
+                  selfieDataUrl: imageDataUrl
                 });
                 setErrors({ ...errors, selfieDataUrl: undefined });
               }}

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import PosterFrame from '@/components/PosterFrame';
 import { useAppStore } from '@/lib/store';
-import { generateImagenPrompt } from '@/lib/prompts';
+import { generateImagenPrompt, getCareerDisplayName } from '@/lib/prompts';
 import { useAuth } from '@/hooks/useAuth';
 import ClientOnlyWrapper from '@/components/ClientOnlyWrapper';
 import ConfettiEffect from '@/components/ConfettiEffect';
@@ -15,9 +15,9 @@ interface GenerationResult {
   imageUrl?: string;
   error?: string;
   metadata?: {
-    generationType?: 'environment-only' | 'complete-scene';
+    generationType?: 'image-editing';
     requiresClientOverlay?: boolean;
-    hasChildImage?: boolean;
+    hasUploadedPhoto?: boolean;
     [key: string]: unknown;
   };
 }
@@ -56,27 +56,19 @@ export default function ResultPage() {
       setError(null);
 
       const selfieDataUrl = sessionStorage.getItem('dreamBigSelfie') || undefined;
-      const avatarSelection = sessionStorage.getItem('dreamBigAvatar') || undefined;
       
-      // Determine child appearance description for the prompt
-      let childAppearance: string | undefined;
-      if (avatarSelection) {
-        childAppearance = `represented by the ${avatarSelection} emoji avatar`;
-      } else if (selfieDataUrl) {
-        childAppearance = 'based on the provided selfie photo';
+      if (!selfieDataUrl) {
+        throw new Error('Camera photo is required');
       }
       
       const prompt = generateImagenPrompt({
         career: currentPosterData.career || '',
         background: currentPosterData.background || '',
-        activity: currentPosterData.activity || '',
-        childAppearance
+        activity: currentPosterData.activity || ''
       });
       
       console.log('📝 [Result Page] Generated prompt:', prompt);
       console.log('👤 [Result Page] Has selfie:', !!selfieDataUrl);
-      console.log('👤 [Result Page] Avatar selection:', avatarSelection || 'None');
-      console.log('👤 [Result Page] Child appearance:', childAppearance || 'Default');
 
       const requestData = {
         prompt,
@@ -85,7 +77,6 @@ export default function ResultPage() {
         activity: currentPosterData.activity,
         aspect: '4:3',
         selfieDataUrl,
-        avatarSelection,
         bgHint: currentPosterData.background
       };
       
@@ -153,7 +144,7 @@ export default function ResultPage() {
           activity: currentPosterData.activity || ''
         },
         createdAt: new Date().toISOString(),
-        badges: [currentPosterData.career || 'Hero']
+        badges: [getCareerDisplayName(currentPosterData.career || '') || 'Hero']
       };
       
       addGeneratedPoster(poster);

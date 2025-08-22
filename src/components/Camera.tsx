@@ -5,23 +5,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 interface CameraProps {
   onCapture: (imageDataUrl: string) => void;
-  onSelectAvatar: (avatar: string) => void;
   currentImage?: string;
 }
 
-const AVATAR_OPTIONS = [
-  '👧🏻', '👦🏻', '👧🏼', '👦🏼', '👧🏽', '👦🏽',
-  '👧🏾', '👦🏾', '👧🏿', '👦🏿', '🧒🏻', '🧒🏼',
-  '🧒🏽', '🧒🏾', '🧒🏿'
-];
-
-export default function Camera({ onCapture, onSelectAvatar, currentImage }: CameraProps) {
+export default function Camera({ onCapture, currentImage }: CameraProps) {
   const [isUsingCamera, setIsUsingCamera] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(currentImage || null);
   const [cameraError, setCameraError] = useState<string | null>(null);
-  const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
-  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [isCameraLoading, setIsCameraLoading] = useState(false);
   const [cameraPermission, setCameraPermission] = useState<'prompt' | 'granted' | 'denied' | null>(null);
   
@@ -156,14 +147,6 @@ export default function Camera({ onCapture, onSelectAvatar, currentImage }: Came
     startCamera();
   }, [startCamera]);
 
-  const handleAvatarSelect = (avatar: string) => {
-    setSelectedAvatar(avatar);
-    onSelectAvatar(avatar);
-    setCapturedImage(null);
-    stopCamera();
-    setShowAvatarPicker(false);
-  };
-
   useEffect(() => {
     // Log environment info on mount
     console.log('🔍 [Camera] Component mounted');
@@ -181,7 +164,7 @@ export default function Camera({ onCapture, onSelectAvatar, currentImage }: Came
     };
   }, [stopCamera]);
 
-  const hasImage = capturedImage || selectedAvatar;
+  const hasImage = !!capturedImage;
 
   return (
     <div className="space-y-6">
@@ -190,7 +173,7 @@ export default function Camera({ onCapture, onSelectAvatar, currentImage }: Came
           Add Your Superhero Face! 📸
         </h3>
         <p className="text-gray-600">
-          Take a selfie or choose an avatar to appear in your poster
+          Take a selfie to appear in your poster
         </p>
       </div>
 
@@ -233,16 +216,6 @@ export default function Camera({ onCapture, onSelectAvatar, currentImage }: Came
             />
           )}
 
-          {selectedAvatar && (
-            <motion.div
-              className="w-full h-full flex items-center justify-center text-8xl"
-              initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.3 }}
-            >
-              {selectedAvatar}
-            </motion.div>
-          )}
 
           {!isUsingCamera && !hasImage && (
             <div className="w-full h-full flex items-center justify-center">
@@ -262,7 +235,7 @@ export default function Camera({ onCapture, onSelectAvatar, currentImage }: Came
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="flex flex-col sm:flex-row gap-4"
+              className="flex justify-center"
             >
               <motion.button
                 onClick={startCamera}
@@ -271,17 +244,7 @@ export default function Camera({ onCapture, onSelectAvatar, currentImage }: Came
                 whileTap={{ scale: 0.95 }}
               >
                 <span>📸</span>
-                <span>Use Camera</span>
-              </motion.button>
-              
-              <motion.button
-                onClick={() => setShowAvatarPicker(true)}
-                className="bg-purple-500 hover:bg-purple-600 text-white px-6 py-3 rounded-xl font-medium transition-colors duration-300 flex items-center space-x-2"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <span>👤</span>
-                <span>Choose Avatar</span>
+                <span>Take Selfie</span>
               </motion.button>
             </motion.div>
           )}
@@ -334,56 +297,6 @@ export default function Camera({ onCapture, onSelectAvatar, currentImage }: Came
           )}
         </AnimatePresence>
 
-        {/* Avatar Selection Grid */}
-        {showAvatarPicker && !capturedImage && !selectedAvatar && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            className="w-full max-w-md"
-          >
-            <div className="text-center mb-4">
-              <p className="text-gray-600 font-medium">Choose an avatar:</p>
-            </div>
-            
-            <div className="grid grid-cols-5 gap-3">
-              {AVATAR_OPTIONS.map((avatar, index) => (
-                <motion.button
-                  key={index}
-                  onClick={() => handleAvatarSelect(avatar)}
-                  className="text-3xl p-3 rounded-xl hover:bg-purple-100 transition-colors duration-200 border-2 border-transparent hover:border-purple-300"
-                  whileHover={{ scale: 1.2 }}
-                  whileTap={{ scale: 0.9 }}
-                  aria-label={`Select avatar ${index + 1}`}
-                >
-                  {avatar}
-                </motion.button>
-              ))}
-            </div>
-            
-            <motion.button
-              onClick={() => setShowAvatarPicker(false)}
-              className="mt-4 bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-300 text-sm"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              Cancel
-            </motion.button>
-          </motion.div>
-        )}
-
-        {selectedAvatar && (
-          <motion.button
-            onClick={() => {
-              setSelectedAvatar(null);
-              onSelectAvatar('');
-            }}
-            className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-300"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-          >
-            Change Avatar
-          </motion.button>
-        )}
 
         {/* Error Display */}
         {cameraError && (

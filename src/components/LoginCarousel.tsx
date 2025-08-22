@@ -17,50 +17,99 @@ const slides: CarouselSlide[] = [
     id: 1,
     title: "Courage",
     subtitle: "Red Lions Parachuting",
-    imageUrl: "/images/red-lions.jpg",
+    imageUrl: "/images/professions/red-lions.png",
     altText: "Red Lions parachuting with Singapore flags, showcasing courage and national pride"
   },
   {
     id: 2,
     title: "Care",
     subtitle: "Healthcare Heroes",
-    imageUrl: "/images/healthcare.jpg", 
+    imageUrl: "/images/professions/doctor.png", 
     altText: "Doctors and nurses caring for patients, representing healthcare heroes"
   },
   {
     id: 3,
     title: "Knowledge", 
     subtitle: "Inspiring Teachers",
-    imageUrl: "/images/teachers.jpg",
-    altText: "Teachers educating and inspiring the next generation"
+    imageUrl: "/images/professions/library.png",
+    altText: "Library assistants and educators inspiring learning and knowledge sharing"
   },
   {
     id: 4,
     title: "Build",
     subtitle: "Engineers & Builders",
-    imageUrl: "/images/engineers.jpg",
+    imageUrl: "/images/professions/engineer.png",
     altText: "Engineers and builders constructing Singapore's infrastructure"
   },
   {
     id: 5,
-    title: "Invent",
-    subtitle: "Scientists & Researchers", 
-    imageUrl: "/images/scientists.jpg",
-    altText: "Scientists and researchers working on innovative technologies"
+    title: "Construct",
+    subtitle: "Construction Workers", 
+    imageUrl: "/images/professions/construction.png",
+    altText: "Construction workers building Singapore's future"
   },
   {
     id: 6,
-    title: "Respect",
-    subtitle: "Essential Workers",
-    imageUrl: "/images/cleaners.jpg",
-    altText: "Cleaners and maintenance crew keeping Singapore clean and safe"
+    title: "Defend",
+    subtitle: "Army Forces & Defense",
+    imageUrl: "/images/professions/forces.png",
+    altText: "Singapore Armed Forces defending our nation"
   },
   {
     id: 7,
+    title: "Champion",
+    subtitle: "Olympic Athletes",
+    imageUrl: "/images/professions/olympions.png",
+    altText: "Olympic athletes representing Singapore in sports and competitions"
+  },
+  {
+    id: 8,
+    title: "Nourish",
+    subtitle: "Chefs & Hawker Cooks",
+    imageUrl: "/images/professions/chef.png",
+    altText: "Chefs and hawker cooks feeding Singapore with delicious local cuisine"
+  },
+  {
+    id: 9,
     title: "Connect",
-    subtitle: "Transport Heroes",
-    imageUrl: "/images/transport.jpg",
-    altText: "MRT and bus captains connecting communities across Singapore"
+    subtitle: "Bus Captains",
+    imageUrl: "/images/professions/bus captain.png",
+    altText: "Bus captains connecting communities across Singapore"
+  },
+  {
+    id: 10,
+    title: "Deliver",
+    subtitle: "Delivery Riders",
+    imageUrl: "/images/professions/delivery.png",
+    altText: "Delivery riders bringing essentials to every doorstep"
+  },
+  {
+    id: 11,
+    title: "Respect",
+    subtitle: "Essential Workers",
+    imageUrl: "/images/professions/cleaner.png",
+    altText: "Cleaners and essential workers keeping Singapore clean and safe"
+  },
+  {
+    id: 12,
+    title: "Grow",
+    subtitle: "Gardeners & Parks",
+    imageUrl: "/images/professions/gardener.png",
+    altText: "Gardeners maintaining Singapore's beautiful green spaces"
+  },
+  {
+    id: 13,
+    title: "Secure",
+    subtitle: "ICA Officers",
+    imageUrl: "/images/professions/ica.png",
+    altText: "ICA officers securing Singapore's borders and immigration"
+  },
+  {
+    id: 14,
+    title: "Entertain",
+    subtitle: "Performers & Actors",
+    imageUrl: "/images/professions/actor.png",
+    altText: "Performers and actors bringing joy and culture to Singapore"
   }
 ];
 
@@ -157,34 +206,34 @@ export default function LoginCarousel({ className = '' }: LoginCarouselProps) {
         >
           <div className="relative w-full h-full flex items-center justify-center">
             <motion.div
-              className="text-center z-20 px-8"
+              className="text-center z-20 px-8 absolute top-16"
               initial={{ y: 30, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.8, delay: 0.2 }}
             >
-              <h2 className="text-8xl font-bold text-white mb-4 drop-shadow-2xl">
+              <h2 className="text-6xl md:text-7xl lg:text-8xl font-bold text-white mb-4 drop-shadow-2xl">
                 {slides[currentSlide].title}
               </h2>
-              <p className="text-3xl text-white/90 font-medium drop-shadow-lg">
+              <p className="text-2xl md:text-3xl text-white/90 font-medium drop-shadow-lg">
                 {slides[currentSlide].subtitle}
               </p>
             </motion.div>
             
-            {/* Career illustration placeholder */}
+            {/* Career illustration image */}
             <motion.div
-              className="absolute inset-0 flex items-center justify-center opacity-20"
+              className="absolute inset-0 flex items-center justify-center"
               initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 0.3 }}
+              animate={{ scale: 1, opacity: 0.85 }}
               transition={{ duration: 1 }}
             >
-              <div className="text-[20rem] select-none">
-                {slides[currentSlide].id === 1 && '🪂'}
-                {slides[currentSlide].id === 2 && '🏥'}
-                {slides[currentSlide].id === 3 && '📚'}
-                {slides[currentSlide].id === 4 && '🏗️'}
-                {slides[currentSlide].id === 5 && '🔬'}
-                {slides[currentSlide].id === 6 && '🧹'}
-                {slides[currentSlide].id === 7 && '🚊'}
+              <div className="relative w-full h-full max-w-[500px] md:max-w-[600px] lg:max-w-[700px] max-h-[500px] md:max-h-[600px] lg:max-h-[700px] flex items-center justify-center px-4">
+                <img
+                  src={slides[currentSlide].imageUrl}
+                  alt={slides[currentSlide].altText}
+                  className="w-full h-full object-contain drop-shadow-2xl"
+                />
+                {/* Glow effect behind image */}
+                <div className="absolute inset-0 bg-white/20 rounded-full blur-3xl scale-125 -z-10" />
               </div>
             </motion.div>
           </div>

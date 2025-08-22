@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { VertexAI } from '@google-cloud/vertexai';
 import { GoogleAuth } from 'google-auth-library';
 import { z } from 'zod';
-import { generateImagenPrompt } from '@/lib/prompts';
 import { imagenRateLimiter, sanitizeText, validateEnvironment } from '@/lib/security';
 
 const generateRequestSchema = z.object({
@@ -17,7 +15,6 @@ const generateRequestSchema = z.object({
   activity: z.string().optional(),
 });
 
-type GenerateRequest = z.infer<typeof generateRequestSchema>;
 
 export async function POST(request: NextRequest) {
   console.log('🎨 [Imagen API] Starting image generation request');
@@ -65,8 +62,10 @@ export async function POST(request: NextRequest) {
     const projectId = process.env.GOOGLE_PROJECT_ID;
     const location = process.env.GOOGLE_LOCATION || 'us-central1';
     
-    // Use edit model for photos, generate model for text-only
-    const modelId = process.env.IMAGEN_MODEL_ID || 'imagen-4.0-ultra-generate-001'
+    // Always use single model since photo is always provided
+    const modelId = process.env.IMAGEN_MODEL_ID || 'imagen-4.0-ultra-generate-001';
+    
+    console.log('🎯 [Model Selection] Using single model:', modelId);
    
 
     if (!projectId) {
@@ -76,81 +75,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Initialize Vertex AI
-    const vertexAI = new VertexAI({
-      project: projectId,
-      location: location,
-    });
 
-    const generativeModel = vertexAI.getGenerativeModel({
-      model: modelId,
-    });
 
-    // Prepare the generation request with multimodal support
-    interface ContentPart {
-      text?: string;
-      inlineData?: {
-        mimeType: string;
-        data: string;
-      };
-    }
-    
-    const parts: ContentPart[] = [
-      {
-        text: sanitizedPrompt
-      }
-    ];
 
-    // Add image data if selfie is provided
-    if (validatedData.selfieDataUrl) {
-      // Extract base64 data from data URL (remove the data:image/...;base64, prefix)
-      const base64Match = validatedData.selfieDataUrl.match(/^data:image\/(\w+);base64,(.+)$/);
-      if (base64Match && base64Match[2]) {
-        console.log('🖼️ [Imagen API] Adding image to request (multimodal)');
-        parts.push({
-          inlineData: {
-            mimeType: `image/${base64Match[1]}`, // jpeg, png, etc.
-            data: base64Match[2] // base64 string without prefix
-          }
-        });
-      } else {
-        console.warn('⚠️ [Imagen API] Invalid image data format');
-      }
-    }
-
-    const generationRequest = {
-      contents: [{
-        role: 'user',
-        parts: parts
-      }],
-      generationConfig: {
-        maxOutputTokens: 1024,
-        temperature: 0.7,
-        topP: 0.8,
-      },
-      safetySettings: [
-        {
-          category: 'HARM_CATEGORY_HATE_SPEECH',
-          threshold: 'BLOCK_MEDIUM_AND_ABOVE',
-        },
-        {
-          category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
-          threshold: 'BLOCK_MEDIUM_AND_ABOVE',
-        },
-        {
-          category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
-          threshold: 'BLOCK_MEDIUM_AND_ABOVE',
-        },
-        {
-          category: 'HARM_CATEGORY_HARASSMENT',
-          threshold: 'BLOCK_MEDIUM_AND_ABOVE',
-        },
-      ],
-    };
-
-    // IMPORTANT: The generation request now includes multimodal support
-    // When selfieDataUrl is provided, the image data is included in the request
-    // This allows the AI model to use the actual child's photo as reference
     
     // REAL IMAGEN API IMPLEMENTATION
     console.log('⏳ [Imagen API] Calling Google Vertex AI Imagen API...');
@@ -187,60 +114,56 @@ export async function POST(request: NextRequest) {
         accessToken = tokenResponse.token!;
       }
 
-      // Construct the Imagen API endpoint
-      const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${modelId}:predict`;
+      // Construct the Imagen API endpoint (will be updated if model changes during fallback)
+      let endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${modelId}:predict`;
       
-      console.log('🔗 [Imagen API] Endpoint:', endpoint);
-      console.log('🎯 [Imagen API] Model ID:', modelId);
+      console.log('🔗 [Imagen API] Initial Endpoint:', endpoint);
+      console.log('🎯 [Imagen API] Initial Model ID:', modelId);
 
-      // Prepare the request payload for Imagen API
-      const requestPayload: {
-        instances: Array<{
-          prompt: string;
-          image?: {
-            bytesBase64Encoded: string;
-          };
-        }>;
-        parameters: {
-          sampleCount: number;
-          aspectRatio: string;
-          safetyFilterLevel: string;
-        };
-      } = {
+      // Validate that photo is always provided
+      if (!validatedData.selfieDataUrl) {
+        return NextResponse.json(
+          { error: 'Camera photo is required' },
+          { status: 400 }
+        );
+      }
+
+      // Extract base64 data from data URL
+      const base64Match = validatedData.selfieDataUrl.match(/^data:image\/(\w+);base64,(.+)$/);
+      if (!base64Match || !base64Match[2]) {
+        return NextResponse.json(
+          { error: 'Invalid image data format' },
+          { status: 400 }
+        );
+      }
+
+      console.log('📸 [Imagen API] Processing camera photo with single model');
+      
+      // Prepare the request payload for Imagen API (standard format)
+      const requestPayload = {
         instances: [
           {
-            prompt: sanitizedPrompt
-          }
-        ],
-        parameters: {
-          sampleCount: 1,
-          aspectRatio: validatedData.aspect.replace(':', ':'), // Ensure proper format
-          safetyFilterLevel: "block_few", // Standard safety level for professional content
-        }
-      };
-
-      // Structure request differently for editing vs generation
-      if (validatedData.selfieDataUrl) {
-        const base64Match = validatedData.selfieDataUrl.match(/^data:image\/(\w+);base64,(.+)$/);
-        if (base64Match && base64Match[2]) {
-          console.log('🎨 [Imagen API] Using image editing model for photo transformation');
-          // For image editing, image is the primary input
-          requestPayload.instances[0] = {
             prompt: sanitizedPrompt,
             image: {
               bytesBase64Encoded: base64Match[2]
             }
-          };
-        } else {
-          console.warn('⚠️ [Imagen API] Invalid image data format, falling back to generation');
+          }
+        ],
+        parameters: {
+          sampleCount: 1,
+          aspectRatio: validatedData.aspect.replace(':', ':'),
+          safetyFilterLevel: "block_few"
         }
-      } else {
-        console.log('🖼️ [Imagen API] Using text-to-image generation (no photo provided)');
-      }
+      };
 
       console.log('📤 [Imagen API] Request payload prepared');
+      console.log('🎯 [DEBUG] Model being used:', modelId);
+      console.log('🎯 [DEBUG] Has image:', !!requestPayload.instances[0].image);
+      console.log('🎯 [DEBUG] Prompt:', requestPayload.instances[0].prompt?.substring(0, 200) + '...');
+      console.log('🎯 [DEBUG] Endpoint:', endpoint);
 
       // Make the API call to Imagen
+      console.log('🚀 [Imagen API] Making API call with model:', modelId);
       const apiResponse = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -254,7 +177,6 @@ export async function POST(request: NextRequest) {
         const errorText = await apiResponse.text();
         console.error('❌ [Imagen API] HTTP error:', apiResponse.status, apiResponse.statusText);
         console.error('❌ [Imagen API] Error response:', errorText);
-        
         throw new Error(`Imagen API error: ${apiResponse.status} ${apiResponse.statusText}\n${errorText}`);
       }
 
