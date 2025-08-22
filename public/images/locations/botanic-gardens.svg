@@ -1,0 +1,19 @@
+<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="skyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#98FB98"/>
+      <stop offset="100%" style="stop-color:#90EE90"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="300" fill="url(#skyGradient)"/>
+  <rect x="0" y="200" width="400" height="100" fill="#228B22"/>
+  <!-- Orchid flowers -->
+  <g>
+    <circle cx="150" cy="120" r="15" fill="#FF69B4"/>
+    <circle cx="250" cy="110" r="12" fill="#DDA0DD"/>
+    <circle cx="320" cy="130" r="10" fill="#FFB6C1"/>
+  </g>
+  <!-- Garden paths -->
+  <ellipse cx="200" cy="220" rx="80" ry="10" fill="#D2B48C"/>
+  <text x="200" y="280" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#333">Botanic Gardens</text>
+</svg>

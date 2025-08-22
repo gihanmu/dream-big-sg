@@ -1,0 +1,13 @@
+<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="300" fill="#87CEEB"/>
+  <!-- Ferris wheel -->
+  <circle cx="200" cy="150" r="80" fill="none" stroke="#C0C0C0" stroke-width="6"/>
+  <!-- Wheel pods -->
+  <g fill="#4169E1">
+    <rect x="195" y="65" width="10" height="8" rx="2"/>
+    <rect x="270" y="145" width="10" height="8" rx="2"/>
+    <rect x="195" y="235" width="10" height="8" rx="2"/>
+    <rect x="120" y="145" width="10" height="8" rx="2"/>
+  </g>
+  <text x="200" y="280" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#333">Singapore Flyer</text>
+</svg>

@@ -1,0 +1,43 @@
+<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="skyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#87CEEB"/>
+      <stop offset="100%" style="stop-color:#E0F6FF"/>
+    </linearGradient>
+    <radialGradient id="treeGradient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#90EE90"/>
+      <stop offset="100%" style="stop-color:#228B22"/>
+    </radialGradient>
+  </defs>
+  
+  <!-- Sky background -->
+  <rect width="400" height="300" fill="url(#skyGradient)"/>
+  
+  <!-- Ground -->
+  <rect x="0" y="250" width="400" height="50" fill="#4CAF50"/>
+  
+  <!-- Supertrees -->
+  <g>
+    <!-- Tree 1 -->
+    <ellipse cx="120" cy="200" rx="40" ry="60" fill="url(#treeGradient)"/>
+    <rect x="115" y="200" width="10" height="50" fill="#8B4513"/>
+    <circle cx="120" cy="180" r="25" fill="#FFD700"/>
+    
+    <!-- Tree 2 -->
+    <ellipse cx="200" cy="180" rx="45" ry="70" fill="url(#treeGradient)"/>
+    <rect x="195" y="180" width="10" height="70" fill="#8B4513"/>
+    <circle cx="200" cy="160" r="30" fill="#FFD700"/>
+    
+    <!-- Tree 3 -->
+    <ellipse cx="280" cy="190" rx="35" ry="65" fill="url(#treeGradient)"/>
+    <rect x="275" y="190" width="10" height="60" fill="#8B4513"/>
+    <circle cx="280" cy="170" r="22" fill="#FFD700"/>
+  </g>
+  
+  <!-- Clouds -->
+  <ellipse cx="80" cy="50" rx="20" ry="12" fill="white" opacity="0.8"/>
+  <ellipse cx="320" cy="70" rx="25" ry="15" fill="white" opacity="0.8"/>
+  
+  <!-- Title -->
+  <text x="200" y="280" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="white">Gardens by the Bay</text>
+</svg>

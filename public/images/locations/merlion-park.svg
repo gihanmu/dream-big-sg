@@ -1,0 +1,11 @@
+<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="300" fill="#87CEEB"/>
+  <rect x="0" y="200" width="400" height="100" fill="#4169E1"/>
+  <!-- Merlion -->
+  <ellipse cx="200" cy="180" rx="30" ry="40" fill="#F5F5DC"/>
+  <!-- Lion head -->
+  <circle cx="200" cy="150" r="25" fill="#F5F5DC"/>
+  <!-- Water spray -->
+  <path d="M 200 130 Q 220 120 240 130" fill="none" stroke="#00BFFF" stroke-width="3"/>
+  <text x="200" y="280" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="white">Merlion Park</text>
+</svg>
