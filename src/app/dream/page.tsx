@@ -297,7 +297,7 @@ export default function DreamPage() {
           className="bg-white rounded-xl p-6 mb-8 shadow-lg"
         >
           <div className="flex items-center justify-between mb-4">
-            {steps.map((step, index) => (
+            {steps.map((_, index) => (
               <div
                 key={index}
                 className={`flex items-center ${

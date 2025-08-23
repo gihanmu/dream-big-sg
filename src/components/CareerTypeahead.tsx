@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CareerOption, getAllCareers, searchCareers, CAREER_CATEGORIES } from '@/lib/careers';
+import { CareerOption, getAllCareers, getPopularCareers, searchCareers } from '@/lib/careers';
 import { useDebounce } from '@/lib/search-utils';
 
 interface CareerTypeaheadProps {
@@ -17,13 +17,12 @@ export default function CareerTypeahead({ value, onChange, onRequestCustomCareer
   const [filteredCareers, setFilteredCareers] = useState<CareerOption[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
 
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Get popular careers for quick selection (first 8 careers)
-  const popularCareers = useMemo(() => getAllCareers().slice(0, 8), []);
+  // Get popular careers for quick selection
+  const popularCareers = useMemo(() => getPopularCareers(), []);
   const popularCareerValues = useMemo(() => popularCareers.map(c => c.value), [popularCareers]);
 
   // Get all careers on mount (excluding popular ones to avoid duplication)
@@ -38,17 +37,12 @@ export default function CareerTypeahead({ value, onChange, onRequestCustomCareer
     const allCareers = getAllCareers();
     let results = searchCareers(term, allCareers);
     
-    // Filter by category if selected
-    if (selectedCategory) {
-      results = results.filter(career => career.category === selectedCategory);
-    }
-    
-    // Exclude popular careers from dropdown to avoid duplication
+      // Exclude popular careers from dropdown to avoid duplication
     results = results.filter(career => !popularCareerValues.includes(career.value));
     
     setFilteredCareers(results.slice(0, 20)); // Limit to 20 results
     setSelectedIndex(-1);
-  }, [selectedCategory, popularCareerValues]);
+  }, [popularCareerValues]);
 
   const debouncedSearch = useDebounce(performSearch, 300);
 
@@ -105,18 +99,6 @@ export default function CareerTypeahead({ value, onChange, onRequestCustomCareer
     setShowDropdown(false);
   };
 
-  // Handle category filter
-  const handleCategoryFilter = (category: string) => {
-    setSelectedCategory(category === selectedCategory ? '' : category);
-    const allCareers = getAllCareers();
-    let results = searchCareers(searchTerm, allCareers);
-    
-    if (category && category !== selectedCategory) {
-      results = results.filter(career => career.category === category);
-    }
-    
-    setFilteredCareers(results.slice(0, 20));
-  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -136,35 +118,10 @@ export default function CareerTypeahead({ value, onChange, onRequestCustomCareer
 
   return (
     <div className="space-y-6">
-      {/* Popular Careers Grid */}
-      <div>
-        <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">
-          Popular Careers 🌟
-        </h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {popularCareers.map((career) => (
-            <motion.button
-              key={career.value}
-              onClick={() => handleCareerSelect(career)}
-              className={`p-3 rounded-xl border-2 transition-all duration-300 text-center ${
-                value === career.value
-                  ? 'border-purple-500 bg-purple-100 shadow-lg'
-                  : 'border-gray-200 hover:border-purple-300 hover:bg-purple-50'
-              }`}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <div className="text-2xl mb-1">{career.emoji}</div>
-              <div className="font-medium text-sm text-gray-800">{career.label}</div>
-            </motion.button>
-          ))}
-        </div>
-      </div>
-
-      {/* Search Section */}
+      {/* Search Section - Now on Top */}
       <div className="relative">
         <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">
-          Search All Other Careers 🔍
+          Search Careers 🔍
         </h3>
         
         {/* Search Input */}
@@ -176,7 +133,7 @@ export default function CareerTypeahead({ value, onChange, onRequestCustomCareer
             onChange={handleSearchChange}
             onKeyDown={handleKeyDown}
             onFocus={() => setShowDropdown(true)}
-            placeholder="Type to search for more careers... (e.g., software engineer, marine biologist, chef)"
+            placeholder="Type to search for careers... (e.g., software engineer, marine biologist, chef)"
             className={`w-full p-4 border-2 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all duration-300 ${
               error ? 'border-red-400' : 'border-gray-200'
             }`}
@@ -191,25 +148,6 @@ export default function CareerTypeahead({ value, onChange, onRequestCustomCareer
             </motion.div>
           </div>
         </div>
-
-        {/* Category Filters */}
-        {showDropdown && (
-          <div className="flex flex-wrap gap-2 mt-3">
-            {Object.values(CAREER_CATEGORIES).slice(0, 6).map((category) => (
-              <button
-                key={category}
-                onClick={() => handleCategoryFilter(category)}
-                className={`px-3 py-1 text-xs rounded-full transition-all duration-200 ${
-                  selectedCategory === category
-                    ? 'bg-purple-500 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-purple-100'
-                }`}
-              >
-                {category}
-              </button>
-            ))}
-          </div>
-        )}
 
         {/* Dropdown Results */}
         <AnimatePresence>
@@ -286,6 +224,31 @@ export default function CareerTypeahead({ value, onChange, onRequestCustomCareer
         {error && (
           <p className="text-red-500 text-sm mt-2 text-center">{error}</p>
         )}
+      </div>
+
+      {/* Popular Careers Grid - Now Below Search */}
+      <div>
+        <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">
+          Popular Careers 🌟
+        </h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {popularCareers.map((career) => (
+            <motion.button
+              key={career.value}
+              onClick={() => handleCareerSelect(career)}
+              className={`p-3 rounded-xl border-2 transition-all duration-300 text-center ${
+                value === career.value
+                  ? 'border-purple-500 bg-purple-100 shadow-lg'
+                  : 'border-gray-200 hover:border-purple-300 hover:bg-purple-50'
+              }`}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className="text-2xl mb-1">{career.emoji}</div>
+              <div className="font-medium text-sm text-gray-800">{career.label}</div>
+            </motion.button>
+          ))}
+        </div>
       </div>
     </div>
   );

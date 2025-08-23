@@ -117,8 +117,64 @@ export const BASE_CAREER_OPTIONS: CareerOption[] = [
   // Legal & Government
   { value: 'lawyer', label: 'Lawyer', emoji: '⚖️', category: CAREER_CATEGORIES.LEGAL },
   { value: 'judge', label: 'Judge', emoji: '👨‍⚖️', category: CAREER_CATEGORIES.LEGAL },
-  { value: 'politician', label: 'Government Official', emoji: '🏛️', category: CAREER_CATEGORIES.LEGAL }
+  { value: 'politician', label: 'Government Official', emoji: '🏛️', category: CAREER_CATEGORIES.LEGAL },
+
+  // Additional Creative Arts
+  { value: 'fashion-designer', label: 'Fashion Designer', emoji: '👗', category: CAREER_CATEGORIES.CREATIVE },
+  { value: 'interior-designer', label: 'Interior Designer', emoji: '🏠', category: CAREER_CATEGORIES.CREATIVE },
+  { value: 'fashion-model', label: 'Fashion Model', emoji: '💃', category: CAREER_CATEGORIES.CREATIVE },
+  { value: 'dj', label: 'DJ', emoji: '🎧', category: CAREER_CATEGORIES.CREATIVE },
+  { value: 'radio-host', label: 'Radio Host', emoji: '📻', category: CAREER_CATEGORIES.ENTERTAINMENT },
+
+  // Additional Business & Finance
+  { value: 'marketing-specialist', label: 'Marketing Specialist', emoji: '📈', category: CAREER_CATEGORIES.BUSINESS },
+  { value: 'hr-manager', label: 'HR Manager', emoji: '🤝', category: CAREER_CATEGORIES.BUSINESS },
+  { value: 'investment-analyst', label: 'Investment Analyst', emoji: '💹', category: CAREER_CATEGORIES.BUSINESS },
+  { value: 'real-estate-agent', label: 'Real Estate Agent', emoji: '🏘️', category: CAREER_CATEGORIES.BUSINESS },
+  { value: 'event-planner', label: 'Event Planner', emoji: '🎉', category: CAREER_CATEGORIES.BUSINESS },
+
+  // Additional Healthcare
+  { value: 'psychologist', label: 'Psychologist', emoji: '🧠', category: CAREER_CATEGORIES.HEALTHCARE },
+  { value: 'nutritionist', label: 'Nutritionist', emoji: '🥗', category: CAREER_CATEGORIES.HEALTHCARE },
+  { value: 'physical-therapist', label: 'Physical Therapist', emoji: '🤲', category: CAREER_CATEGORIES.HEALTHCARE },
+
+  // Additional Sports & Fitness
+  { value: 'personal-trainer', label: 'Personal Trainer', emoji: '🏋️', category: CAREER_CATEGORIES.SPORTS },
+  { value: 'yoga-instructor', label: 'Yoga Instructor', emoji: '🧘', category: CAREER_CATEGORIES.SPORTS },
+
+  // Additional Service Industry
+  { value: 'social-worker', label: 'Social Worker', emoji: '🤗', category: CAREER_CATEGORIES.SERVICE },
+  { value: 'tour-guide', label: 'Tour Guide', emoji: '🗺️', category: CAREER_CATEGORIES.SERVICE },
+  { value: 'travel-agent', label: 'Travel Agent', emoji: '✈️', category: CAREER_CATEGORIES.SERVICE },
+  { value: 'customer-service', label: 'Customer Service Rep', emoji: '📞', category: CAREER_CATEGORIES.SERVICE },
+
+  // Additional Technology
+  { value: 'cybersecurity-expert', label: 'Cybersecurity Expert', emoji: '🔐', category: CAREER_CATEGORIES.TECHNOLOGY },
+  { value: 'ux-designer', label: 'UX Designer', emoji: '📱', category: CAREER_CATEGORIES.TECHNOLOGY },
+  { value: 'robotics-engineer', label: 'Robotics Engineer', emoji: '🤖', category: CAREER_CATEGORIES.TECHNOLOGY },
+
+  // Additional Creative/Media
+  { value: 'journalist', label: 'Journalist', emoji: '📰', category: CAREER_CATEGORIES.CREATIVE },
+  { value: 'video-editor', label: 'Video Editor', emoji: '🎞️', category: CAREER_CATEGORIES.CREATIVE },
+  { value: 'translator', label: 'Translator', emoji: '🗣️', category: CAREER_CATEGORIES.CREATIVE },
+
+  // Additional Science
+  { value: 'geologist', label: 'Geologist', emoji: '⛰️', category: CAREER_CATEGORIES.SCIENCE },
+  { value: 'meteorologist', label: 'Weather Forecaster', emoji: '🌤️', category: CAREER_CATEGORIES.SCIENCE },
+  { value: 'lab-technician', label: 'Lab Technician', emoji: '🔬', category: CAREER_CATEGORIES.SCIENCE }
 ];
+
+/**
+ * Get specific popular careers as requested
+ */
+export function getPopularCareers(): CareerOption[] {
+  const popularCareerValues = ['doctor', 'engineer', 'pilot', 'police-officer', 'teacher', 'fashion-designer', 'paramedic', 'actor'];
+  const allCareers = getAllCareers();
+  
+  return popularCareerValues.map(value => 
+    allCareers.find(career => career.value === value)
+  ).filter(career => career !== undefined) as CareerOption[];
+}
 
 /**
  * Get careers from localStorage and merge with base careers
