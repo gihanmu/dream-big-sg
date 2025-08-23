@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CareerOption, getAllCareers, searchCareers, CAREER_CATEGORIES } from '@/lib/careers';
 import { useDebounce } from '@/lib/search-utils';
@@ -22,11 +22,16 @@ export default function CareerTypeahead({ value, onChange, onRequestCustomCareer
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Get all careers on mount
+  // Get popular careers for quick selection (first 8 careers)
+  const popularCareers = useMemo(() => getAllCareers().slice(0, 8), []);
+  const popularCareerValues = useMemo(() => popularCareers.map(c => c.value), [popularCareers]);
+
+  // Get all careers on mount (excluding popular ones to avoid duplication)
   useEffect(() => {
     const allCareers = getAllCareers();
-    setFilteredCareers(allCareers.slice(0, 12)); // Show first 12 by default
-  }, []);
+    const nonPopularCareers = allCareers.filter(career => !popularCareerValues.includes(career.value));
+    setFilteredCareers(nonPopularCareers.slice(0, 12)); // Show first 12 non-popular careers by default
+  }, [popularCareerValues]);
 
   // Debounced search function
   const performSearch = useCallback((term: string) => {
@@ -38,9 +43,12 @@ export default function CareerTypeahead({ value, onChange, onRequestCustomCareer
       results = results.filter(career => career.category === selectedCategory);
     }
     
+    // Exclude popular careers from dropdown to avoid duplication
+    results = results.filter(career => !popularCareerValues.includes(career.value));
+    
     setFilteredCareers(results.slice(0, 20)); // Limit to 20 results
     setSelectedIndex(-1);
-  }, [selectedCategory]);
+  }, [selectedCategory, popularCareerValues]);
 
   const debouncedSearch = useDebounce(performSearch, 300);
 
@@ -125,8 +133,6 @@ export default function CareerTypeahead({ value, onChange, onRequestCustomCareer
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Get popular careers for quick selection
-  const popularCareers = getAllCareers().slice(0, 8);
 
   return (
     <div className="space-y-6">
@@ -158,7 +164,7 @@ export default function CareerTypeahead({ value, onChange, onRequestCustomCareer
       {/* Search Section */}
       <div className="relative">
         <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">
-          Search More Careers 🔍
+          Search All Other Careers 🔍
         </h3>
         
         {/* Search Input */}
@@ -170,7 +176,7 @@ export default function CareerTypeahead({ value, onChange, onRequestCustomCareer
             onChange={handleSearchChange}
             onKeyDown={handleKeyDown}
             onFocus={() => setShowDropdown(true)}
-            placeholder="Type to search careers... (e.g., doctor, teacher, pilot)"
+            placeholder="Type to search for more careers... (e.g., software engineer, marine biologist, chef)"
             className={`w-full p-4 border-2 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all duration-300 ${
               error ? 'border-red-400' : 'border-gray-200'
             }`}
@@ -213,7 +219,7 @@ export default function CareerTypeahead({ value, onChange, onRequestCustomCareer
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="absolute z-50 w-full mt-2 bg-white border-2 border-gray-200 rounded-xl shadow-lg max-h-80 overflow-y-auto"
+              className="absolute z-50 w-full mt-2 bg-white border-2 border-gray-200 rounded-xl shadow-xl max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-purple-300 scrollbar-track-gray-100"
             >
               {filteredCareers.length > 0 ? (
                 <>

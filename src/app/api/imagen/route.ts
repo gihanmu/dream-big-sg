@@ -18,6 +18,7 @@ const generateRequestSchema = z.object({
 
 // Function to analyze image with Gemini and generate person description
 async function analyzeImageWithGemini(imageBase64: string, imageMimeType: string, apiKey: string): Promise<string> {
+  
   try {
     console.log('🔍 [Gemini Vision] Analyzing uploaded photo...');
     
@@ -26,12 +27,23 @@ async function analyzeImageWithGemini(imageBase64: string, imageMimeType: string
 
     const parts = [
       {
-        text: `Please describe this person in detail for creating a superhero poster. Focus on: 
-        - Physical appearance (age, gender, hair, facial features)
-        - Clothing style and colors
-        - Overall look and style
-        - Any distinctive features
-        Keep the description factual and suitable for generating an artistic poster. Be specific about visual details that would help an AI create a similar-looking character.`
+        text: `Please describe the person visible in an uploaded selfie in detail for creating a superhero poster. 
+Focus only on what is visually observable and avoid guessing identity, name, or private details. 
+
+Include:
+- overall build and body proportions,
+- apparent age bracket (choose from: young child, teenager, young adult, adult, older adult),
+- face shape and distinctive landmarks,
+- hairstyle, length, and texture,
+- eye shape and visible color tone,
+- skin tone (neutral terms like "light", "medium", "tan", "deep", with undertone if visible),
+- clothing layers, colors, and patterns (describe generically, not by brand),
+- visible accessories (e.g., glasses, hats, jewelry, bag, watch),
+- pose, orientation, and facial expression,
+- lighting conditions, camera angle, and background context,
+- any notable but non-sensitive distinctive features (e.g., freckles, dimples, birthmarks).
+
+The description must remain factual, neutral, and specific enough to guide an image generation model to recreate a visually similar character for a poster.`
       },
       {
         inlineData: {
@@ -211,7 +223,15 @@ export async function POST(request: NextRequest) {
       // STEP 2: Create enhanced prompt combining person description with context
       console.log('📝 [Step 2] Creating enhanced prompt...');
       
-      const enhancedPrompt = `A professional superhero poster featuring ${personDescription} dressed as a ${validatedData.career || 'hero'} ${validatedData.activity || 'saving the day'} at ${sanitizedBgHint || 'an iconic location'}. ${sanitizedPrompt}. Vibrant colors, dynamic composition, poster-worthy quality, highly detailed, 2K resolution.`;
+      const enhancedPrompt = `A professional, text-free poster featuring ${personDescription}
+visually represented as a ${validatedData.career || "hero"} performing ${validatedData.activity || "a high-energy heroic action"}.
+Set at ${sanitizedBgHint || "an iconic Singapore setting"}.
+
+Convey the action purely through body pose, motion blur, lighting, and effects—no words.
+Cinematic, photorealistic details; vibrant but natural colors; dynamic composition.
+Ultra-high resolution (4096×4096 or higher), sharp edges, poster-ready artwork suitable for large print.
+Do NOT include any text, captions, titles, speech bubbles, letters, numbers, watermarks, or logos.
+Avoid legible signage or text on clothing, buildings, or props.`;
       
       // Validate prompt length (Imagen has limits)
       const MAX_PROMPT_LENGTH = 2000;
@@ -240,7 +260,11 @@ export async function POST(request: NextRequest) {
         parameters: {
           sampleCount: 1,
           aspectRatio: validatedData.aspect.replace(':', ':'),
-          safetyFilterLevel: "block_few"
+          safetyFilterLevel: "block_few",
+          outputDimension: {
+            widthPixels: 4096,
+            heightPixels: 4096
+          }
         }
       };
 

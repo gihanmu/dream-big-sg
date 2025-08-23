@@ -41,6 +41,7 @@ export const BASE_CAREER_OPTIONS: CareerOption[] = [
 
   // Technology
   { value: 'programmer', label: 'Programmer', emoji: '🧑‍💻', category: CAREER_CATEGORIES.TECHNOLOGY },
+  { value: 'software-engineer', label: 'Software Engineer', emoji: '👨‍💻', category: CAREER_CATEGORIES.TECHNOLOGY },
   { value: 'data-scientist', label: 'Data Scientist', emoji: '📊', category: CAREER_CATEGORIES.TECHNOLOGY },
   { value: 'game-developer', label: 'Game Developer', emoji: '🎮', category: CAREER_CATEGORIES.TECHNOLOGY },
   { value: 'ai-engineer', label: 'AI Engineer', emoji: '🤖', category: CAREER_CATEGORIES.TECHNOLOGY },

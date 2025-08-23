@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import PosterFrame from '@/components/PosterFrame';
 import { useAppStore } from '@/lib/store';
 import { generateImagenPrompt, getCareerDisplayName } from '@/lib/prompts';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/lib/toast-context';
 import ClientOnlyWrapper from '@/components/ClientOnlyWrapper';
 import ConfettiEffect from '@/components/ConfettiEffect';
 
@@ -26,11 +27,13 @@ export default function ResultPage() {
   const router = useRouter();
   const { currentPosterData, addGeneratedPoster, isFirstLogin } = useAppStore();
   const { isAuthenticated, isLoading } = useAuth();
+  const { showSuccess } = useToast();
   
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     if (!isLoading) {
@@ -48,12 +51,38 @@ export default function ResultPage() {
     }
   }, [isLoading, isAuthenticated, currentPosterData.career, currentPosterData.background, currentPosterData.activity]);
 
+  // Cleanup audio when component unmounts
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
   const generatePoster = async () => {
     console.log('🎨 [Result Page] Starting poster generation');
     
     try {
       setIsGenerating(true);
       setError(null);
+
+      // Start playing audio during generation
+      try {
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current.currentTime = 0;
+        }
+        audioRef.current = new Audio('/audio/result-song.mp3');
+        audioRef.current.volume = 0.5;
+        audioRef.current.loop = true; // Keep playing throughout and after generation
+        audioRef.current.play().catch(audioError => {
+          console.log('Audio playback failed (user interaction required):', audioError);
+        });
+      } catch (audioError) {
+        console.log('Audio not available:', audioError);
+      }
 
       const selfieDataUrl = sessionStorage.getItem('dreamBigSelfie') || undefined;
       
@@ -136,8 +165,13 @@ export default function ResultPage() {
     console.log('Poster saved successfully!');
   };
 
-  const handlePrint = () => {
-    console.log('Poster sent to printer!');
+  const handleStartOver = () => {
+    // Stop audio when starting over
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    router.push('/dream');
   };
 
   const handleRegenerate = () => {
@@ -163,7 +197,7 @@ export default function ResultPage() {
       addGeneratedPoster(poster);
       
       // Show success message
-      alert('Poster added to your gallery! 🎉');
+      showSuccess('Poster added to your gallery! 🎉', '🎨');
     }
   };
 
@@ -245,9 +279,9 @@ export default function ResultPage() {
           background={currentPosterData.background || ''}
           activity={currentPosterData.activity || ''}
           onSave={handleSave}
-          onPrint={handlePrint}
           onRegenerate={handleRegenerate}
           onAddToGallery={handleAddToGallery}
+          onStartOver={handleStartOver}
           isLoading={isGenerating}
         />
 

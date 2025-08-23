@@ -11,9 +11,9 @@ interface PosterFrameProps {
   background: string;
   activity: string;
   onSave: () => void;
-  onPrint: () => void;
   onRegenerate: () => void;
   onAddToGallery: () => void;
+  onStartOver: () => void;
   isLoading?: boolean;
 }
 
@@ -36,9 +36,9 @@ export default function PosterFrame({
   background,
   activity,
   onSave,
-  onPrint,
   onRegenerate,
   onAddToGallery,
+  onStartOver,
   isLoading = false
 }: PosterFrameProps) {
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -51,161 +51,162 @@ export default function PosterFrame({
 
   const handleSave = async () => {
     try {
-      // Create a canvas to combine the image with the footer
+      // Create a canvas to combine the image with event branding
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
       const img = new window.Image();
       img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        // Set canvas size (poster dimensions)
-        canvas.width = 512;
-        canvas.height = 384;
+      img.onload = async () => {
+        // Set canvas size (poster dimensions - larger for better quality)
+        canvas.width = 1024;
+        canvas.height = 768;
 
         // Draw the generated image
-        ctx.drawImage(img, 0, 0, 512, 384);
+        ctx.drawImage(img, 0, 0, 1024, 768);
 
-        // Add footer bar
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(0, 350, 512, 34);
+        // Add event branding footer with better design
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+        ctx.fillRect(0, 680, 1024, 100);
 
-        // Add date in center
-        ctx.fillStyle = 'white';
-        ctx.font = '12px Arial';
+        // Add event title
+        ctx.fillStyle = '#2C3E50';
+        ctx.font = 'bold 22px serif';
         ctx.textAlign = 'center';
-        const date = new Date().toLocaleDateString();
-        ctx.fillText(date, 256, 368);
+        ctx.fillText('Big Heart Student Care 10th Anniversary', 512, 700);
 
-        // Add Google logo text (bottom-left)
-        ctx.textAlign = 'left';
-        ctx.font = '10px Arial';
-        ctx.fillText('Google', 10, 378);
+        // Add subtitle  
+        ctx.fillStyle = '#E74C3C';
+        ctx.font = 'bold 16px serif';
+        ctx.fillText('Dream Big, Chase Your Rainbow', 512, 720);
 
-        // Add NCS text (bottom-right)
-        ctx.textAlign = 'right';
-        ctx.fillText('NCS', 502, 378);
+        // Add date
+        ctx.fillStyle = '#2C3E50';
+        ctx.font = '14px serif';
+        const date = new Date().toLocaleDateString('en-SG', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+        ctx.fillText(date, 512, 740);
+
+        // Load and draw logos with new layout
+        const logoY = 700;
+        const logoHeight = 30;
+        
+        // New layout: Left side (NCS, Google), Right side (Big Heart, Singapore flag)
+        const leftLogoX1 = 100;  // NCS logo position (left side)
+        const leftLogoX2 = 200;  // Google logo position (left side)
+        const rightLogoX1 = 824;  // Big Heart logo position (right side)
+        const rightLogoX2 = 924;  // Singapore flag position (right side)
+
+        // Function to load and draw logos
+        const loadAndDrawLogos = async () => {
+          try {
+            // Create logo image elements
+            const ncsLogo = new window.Image();
+            const googleLogo = new window.Image();
+            const bigHeartLogo = new window.Image();
+
+            // Set crossOrigin for logo images
+            [ncsLogo, googleLogo, bigHeartLogo].forEach(img => {
+              img.crossOrigin = 'anonymous';
+            });
+
+            // Load all logos (no Singapore flag image, will draw flag manually)
+            const logoPromises = [
+              new Promise((resolve, reject) => {
+                ncsLogo.onload = () => resolve(ncsLogo);
+                ncsLogo.onerror = reject;
+                ncsLogo.src = '/images/ncs-logo-big.png';
+              }),
+              new Promise((resolve, reject) => {
+                googleLogo.onload = () => resolve(googleLogo);
+                googleLogo.onerror = reject;
+                googleLogo.src = '/images/google-big.png';
+              }),
+              new Promise((resolve, reject) => {
+                bigHeartLogo.onload = () => resolve(bigHeartLogo);
+                bigHeartLogo.onerror = reject;
+                bigHeartLogo.src = '/images/big-heart-student-care-result.jpeg';
+              })
+            ];
+
+            const [ncsImg, googleImg, bigHeartImg] = await Promise.all(logoPromises);
+
+            // Helper function to draw logo with proper scaling
+            const drawLogo = (img: HTMLImageElement, x: number, maxHeight: number) => {
+              const aspectRatio = img.width / img.height;
+              const drawHeight = Math.min(maxHeight, img.height);
+              const drawWidth = drawHeight * aspectRatio;
+              
+              // Center logo horizontally at x position
+              const drawX = x - drawWidth / 2;
+              const drawY = logoY - drawHeight / 2;
+              
+              ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+            };
+
+            // Draw left side logos (NCS, Google)
+            drawLogo(ncsImg as HTMLImageElement, leftLogoX1, logoHeight);
+            drawLogo(googleImg as HTMLImageElement, leftLogoX2, logoHeight);
+
+            // Draw right side logo (Big Heart)
+            drawLogo(bigHeartImg as HTMLImageElement, rightLogoX1, logoHeight);
+
+            // Draw Singapore flag manually
+            const flagWidth = 40;
+            const flagHeight = 27;
+            const flagX = rightLogoX2 - flagWidth / 2;
+            const flagY = logoY - flagHeight / 2;
+
+            // Singapore flag - red top, white bottom
+            ctx.fillStyle = '#FF0000';
+            ctx.fillRect(flagX, flagY, flagWidth, flagHeight / 2);
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(flagX, flagY + flagHeight / 2, flagWidth, flagHeight / 2);
+
+            // Add thin border around flag
+            ctx.strokeStyle = '#CCCCCC';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(flagX, flagY, flagWidth, flagHeight);
+
+          } catch (error) {
+            console.warn('Failed to load logo images, using fallback text:', error);
+            
+            // Fallback to text-based logos if images fail
+            ctx.fillStyle = '#2C3E50';
+            ctx.font = 'bold 10px serif';
+            ctx.textAlign = 'center';
+            
+            ctx.fillText('NCS', leftLogoX1, logoY);
+            ctx.fillText('GOOGLE', leftLogoX2, logoY);
+            ctx.fillText('BIG HEART', rightLogoX1, logoY);
+            ctx.fillText('🇸🇬', rightLogoX2, logoY);
+          }
+        };
+
+        // Load and draw logos
+        await loadAndDrawLogos();
 
         // Download the combined image
         const link = document.createElement('a');
-        link.download = `superhero-poster-${Date.now()}.png`;
+        link.download = `superhero-poster-${getCareerDisplayName(career).toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.png`;
         link.href = canvas.toDataURL('image/png');
+        document.body.appendChild(link);
         link.click();
+        document.body.removeChild(link);
       };
       img.src = imageUrl;
       
       onSave();
     } catch (error) {
       console.error('Error saving poster:', error);
+      alert('Error saving poster. Please try again.');
     }
   };
 
-  const handlePrint = async () => {
-    try {
-      // Create a canvas to combine the image with logos
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        throw new Error('Could not get canvas context');
-      }
-
-      // Set canvas size (poster dimensions)
-      canvas.width = 1024;
-      canvas.height = 768;
-
-      // Load the generated poster image
-      const posterImg = new window.Image();
-      posterImg.crossOrigin = 'anonymous';
-      
-      await new Promise((resolve, reject) => {
-        posterImg.onload = resolve;
-        posterImg.onerror = reject;
-        posterImg.src = imageUrl;
-      });
-
-      // Draw the poster image (full size)
-      ctx.drawImage(posterImg, 0, 0, canvas.width, canvas.height);
-
-      // Load and draw Google logo (top-left)
-      try {
-        const googleImg = new window.Image();
-        googleImg.crossOrigin = 'anonymous';
-        
-        await new Promise((resolve, reject) => {
-          googleImg.onload = resolve;
-          googleImg.onerror = reject;
-          googleImg.src = '/images/google.png';
-        });
-
-        // Draw Google logo with semi-transparent white background
-        const logoSize = 80;
-        const padding = 16;
-        
-        // White background for Google logo
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-        ctx.fillRect(padding, padding, logoSize + 16, logoSize + 16);
-        
-        // Draw Google logo
-        ctx.drawImage(googleImg, padding + 8, padding + 8, logoSize, logoSize);
-      } catch (error) {
-        console.warn('Could not load Google logo:', error);
-      }
-
-      // Load and draw NCS logo (top-right)
-      try {
-        const ncsImg = new window.Image();
-        ncsImg.crossOrigin = 'anonymous';
-        
-        await new Promise((resolve, reject) => {
-          ncsImg.onload = resolve;
-          ncsImg.onerror = reject;
-          ncsImg.src = '/images/ncs.jpg';
-        });
-
-        // Draw NCS logo with semi-transparent white background
-        const logoSize = 80;
-        const padding = 16;
-        
-        // White background for NCS logo
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-        ctx.fillRect(canvas.width - logoSize - padding - 16, padding, logoSize + 16, logoSize + 16);
-        
-        // Draw NCS logo
-        ctx.drawImage(ncsImg, canvas.width - logoSize - padding - 8, padding + 8, logoSize, logoSize);
-      } catch (error) {
-        console.warn('Could not load NCS logo:', error);
-      }
-
-      // Add event branding text at the bottom
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-      ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
-      
-      ctx.fillStyle = 'white';
-      ctx.font = 'bold 16px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText('Dream Big Singapore - A Google Cloud & NCS Initiative', canvas.width / 2, canvas.height - 20);
-
-      // Convert to blob and download
-      canvas.toBlob((blob) => {
-        if (blob) {
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `superhero-poster-${getCareerDisplayName(career).toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.png`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(url);
-        }
-      }, 'image/png');
-
-    } catch (error) {
-      console.error('Error creating printable poster:', error);
-      alert('Sorry, there was an error creating your printable poster. Please try again.');
-    }
-    
-    onPrint();
-  };
 
   return (
     <motion.div
@@ -282,25 +283,14 @@ export default function PosterFrame({
         </motion.button>
 
         <motion.button
-          onClick={handlePrint}
-          className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center space-x-2"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          disabled={!imageLoaded || isLoading}
-        >
-          <span>🖨️</span>
-          <span>Print</span>
-        </motion.button>
-
-        <motion.button
           onClick={onRegenerate}
           className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center space-x-2"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           disabled={isLoading}
         >
-          <span>🔄</span>
-          <span>Generate Again</span>
+          <span>🎲</span>
+          <span>Surprise Me Again</span>
         </motion.button>
 
         <motion.button
@@ -313,6 +303,28 @@ export default function PosterFrame({
           <span>🎨</span>
           <span>Add to Gallery</span>
         </motion.button>
+
+        <motion.button
+          onClick={onStartOver}
+          className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center space-x-2"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <span>🏠</span>
+          <span>Start Over</span>
+        </motion.button>
+      </motion.div>
+
+      {/* Helpful message */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.4 }}
+        className="mt-4 text-center"
+      >
+        <p className="text-gray-600 text-sm">
+          💡 Not happy with your poster? Click <span className="font-bold text-orange-500">Surprise Me Again</span> to generate a new one!
+        </p>
       </motion.div>
 
       {/* Poster Info */}
@@ -320,7 +332,7 @@ export default function PosterFrame({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.5 }}
-        className="mt-6 bg-white/90 backdrop-blur-sm rounded-xl p-6 shadow-lg"
+        className="mt-4 bg-white/90 backdrop-blur-sm rounded-xl p-6 shadow-lg"
       >
         <h2 className="text-2xl font-bold text-gray-800 mb-4 text-center">{title}</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">

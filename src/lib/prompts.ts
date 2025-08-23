@@ -1,6 +1,6 @@
 
 import { LOCATION_OPTIONS } from '@/lib/locations';
-import { BASE_CAREER_OPTIONS } from '@/lib/careers';
+import { BASE_CAREER_OPTIONS, getAllCareers } from '@/lib/careers';
 
 export interface PosterData {
   career: string;
@@ -92,7 +92,9 @@ export const BACKGROUND_OPTIONS = [
 
 // Helper functions to convert internal values to display names
 export function getCareerDisplayName(careerValue: string): string {
-  const career = BASE_CAREER_OPTIONS.find(c => c.value === careerValue);
+  // Check in all careers (including custom ones)
+  const allCareers = getAllCareers();
+  const career = allCareers.find(c => c.value === careerValue);
   return career?.label || careerValue.charAt(0).toUpperCase() + careerValue.slice(1);
 }
 
