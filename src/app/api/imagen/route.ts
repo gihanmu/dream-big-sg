@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleAuth } from 'google-auth-library';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { z } from 'zod';
 import { imagenRateLimiter, sanitizeText, validateEnvironment } from '@/lib/security';
 
@@ -14,6 +15,45 @@ const generateRequestSchema = z.object({
   background: z.string().optional(),
   activity: z.string().optional(),
 });
+
+// Function to analyze image with Gemini and generate person description
+async function analyzeImageWithGemini(imageBase64: string, imageMimeType: string, apiKey: string): Promise<string> {
+  try {
+    console.log('🔍 [Gemini Vision] Analyzing uploaded photo...');
+    
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+
+    const parts = [
+      {
+        text: `Please describe this person in detail for creating a superhero poster. Focus on: 
+        - Physical appearance (age, gender, hair, facial features)
+        - Clothing style and colors
+        - Overall look and style
+        - Any distinctive features
+        Keep the description factual and suitable for generating an artistic poster. Be specific about visual details that would help an AI create a similar-looking character.`
+      },
+      {
+        inlineData: {
+          mimeType: imageMimeType,
+          data: imageBase64
+        }
+      }
+    ];
+
+    const result = await model.generateContent(parts);
+    const description = result.response.text();
+    
+    console.log('✅ [Gemini Vision] Analysis complete');
+    console.log('👤 [Gemini Vision] Generated description length:', description.length);
+    
+    return description.trim();
+  } catch (error) {
+    console.error('❌ [Gemini Vision] Analysis failed:', error);
+    // Return a generic description if analysis fails
+    return "a person";
+  }
+}
 
 
 export async function POST(request: NextRequest) {
@@ -61,16 +101,24 @@ export async function POST(request: NextRequest) {
     // Check for required environment variables
     const projectId = process.env.GOOGLE_PROJECT_ID;
     const location = process.env.GOOGLE_LOCATION || 'us-central1';
+    const geminiApiKey = process.env.GEMINI_API_KEY;
     
-    // Always use single model since photo is always provided
+    // Use latest Imagen 4 model for text-to-image generation (2024-2025)
     const modelId = process.env.IMAGEN_MODEL_ID || 'imagen-4.0-ultra-generate-001';
     
-    console.log('🎯 [Model Selection] Using single model:', modelId);
+    console.log('🎯 [Model Selection] Using Imagen 4 model:', modelId);
    
-
     if (!projectId) {
       return NextResponse.json(
         { error: 'Missing Google Cloud project configuration' },
+        { status: 500 }
+      );
+    }
+
+    if (!geminiApiKey) {
+      console.error('❌ [Config] Missing GOOGLE_API_KEY environment variable');
+      return NextResponse.json(
+        { error: 'Missing Google API key for Gemini analysis. Please check server configuration.' },
         { status: 500 }
       );
     }
@@ -114,8 +162,8 @@ export async function POST(request: NextRequest) {
         accessToken = tokenResponse.token!;
       }
 
-      // Construct the Imagen API endpoint (will be updated if model changes during fallback)
-      let endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${modelId}:predict`;
+      // Construct the Imagen API endpoint
+      const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${modelId}:predict`;
       
       console.log('🔗 [Imagen API] Initial Endpoint:', endpoint);
       console.log('🎯 [Imagen API] Initial Model ID:', modelId);
@@ -137,16 +185,56 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      console.log('📸 [Imagen API] Processing camera photo with single model');
+      // STEP 1: Analyze image with Gemini to get person description
+      console.log('🔍 [Step 1] Starting Gemini vision analysis...');
       
-      // Prepare the request payload for Imagen API (standard format)
+      let personDescription: string;
+      try {
+        personDescription = await analyzeImageWithGemini(
+          base64Match[2], 
+          `image/${base64Match[1]}`, 
+          geminiApiKey
+        );
+        
+        if (personDescription === "a person") {
+          console.warn('⚠️ [Gemini Vision] Analysis returned generic fallback description');
+        }
+        
+        console.log('👤 [Gemini Vision] Person description:', personDescription.substring(0, 150) + '...');
+        console.log('✅ [Step 1] Gemini vision analysis completed successfully');
+      } catch (geminiError) {
+        console.error('❌ [Step 1] Gemini vision analysis failed:', geminiError);
+        personDescription = "a person with a friendly appearance";
+        console.log('🔄 [Step 1] Using fallback person description');
+      }
+      
+      // STEP 2: Create enhanced prompt combining person description with context
+      console.log('📝 [Step 2] Creating enhanced prompt...');
+      
+      const enhancedPrompt = `A professional superhero poster featuring ${personDescription} dressed as a ${validatedData.career || 'hero'} ${validatedData.activity || 'saving the day'} at ${sanitizedBgHint || 'an iconic location'}. ${sanitizedPrompt}. Vibrant colors, dynamic composition, poster-worthy quality, highly detailed, 2K resolution.`;
+      
+      // Validate prompt length (Imagen has limits)
+      const MAX_PROMPT_LENGTH = 2000;
+      if (enhancedPrompt.length > MAX_PROMPT_LENGTH) {
+        console.warn(`⚠️ [Step 2] Enhanced prompt too long (${enhancedPrompt.length} chars), truncating to ${MAX_PROMPT_LENGTH}`);
+        console.log('✂️ [Step 2] Using truncated prompt');
+      }
+      
+      const finalPrompt = enhancedPrompt.length > MAX_PROMPT_LENGTH 
+        ? enhancedPrompt.substring(0, MAX_PROMPT_LENGTH - 3) + '...'
+        : enhancedPrompt;
+      
+      console.log('✨ [Step 2] Enhanced prompt length:', finalPrompt.length);
+      console.log('📝 [Step 2] Preview:', finalPrompt.substring(0, 300) + (finalPrompt.length > 300 ? '...' : ''));
+      console.log('✅ [Step 2] Enhanced prompt created successfully');
+      
+      // STEP 3: Prepare request for Imagen API (pure text-to-image format)
+      console.log('🚀 [Step 3] Preparing Imagen API request...');
+      
       const requestPayload = {
         instances: [
           {
-            prompt: sanitizedPrompt,
-            image: {
-              bytesBase64Encoded: base64Match[2]
-            }
+            prompt: finalPrompt
           }
         ],
         parameters: {
@@ -156,28 +244,51 @@ export async function POST(request: NextRequest) {
         }
       };
 
-      console.log('📤 [Imagen API] Request payload prepared');
+      console.log('📤 [Imagen API] Text-to-image payload prepared');
       console.log('🎯 [DEBUG] Model being used:', modelId);
-      console.log('🎯 [DEBUG] Has image:', !!requestPayload.instances[0].image);
-      console.log('🎯 [DEBUG] Prompt:', requestPayload.instances[0].prompt?.substring(0, 200) + '...');
+      console.log('🎯 [DEBUG] Using text-to-image generation (no image input)');
+      console.log('🎯 [DEBUG] Enhanced prompt length:', requestPayload.instances[0].prompt?.length);
       console.log('🎯 [DEBUG] Endpoint:', endpoint);
 
-      // Make the API call to Imagen
-      console.log('🚀 [Imagen API] Making API call with model:', modelId);
-      const apiResponse = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestPayload)
-      });
+      // STEP 4: Make the API call to Imagen
+      console.log('🚀 [Step 4] Calling Imagen API with model:', modelId);
+      console.log('📡 [Step 4] Endpoint:', endpoint);
+      
+      let apiResponse: Response;
+      try {
+        apiResponse = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestPayload)
+        });
+      } catch (fetchError) {
+        console.error('❌ [Step 4] Network error calling Imagen API:', fetchError);
+        throw new Error(`Network error: Unable to reach Imagen API. Please try again.`);
+      }
 
       if (!apiResponse.ok) {
         const errorText = await apiResponse.text();
-        console.error('❌ [Imagen API] HTTP error:', apiResponse.status, apiResponse.statusText);
-        console.error('❌ [Imagen API] Error response:', errorText);
-        throw new Error(`Imagen API error: ${apiResponse.status} ${apiResponse.statusText}\n${errorText}`);
+        console.error('❌ [Step 4] Imagen API HTTP error:', apiResponse.status, apiResponse.statusText);
+        console.error('❌ [Step 4] Error response:', errorText);
+        
+        // Provide more specific error messages based on status code
+        let errorMessage = `Imagen API error: ${apiResponse.status}`;
+        if (apiResponse.status === 400) {
+          errorMessage = 'Bad request to Imagen API. The prompt or parameters may be invalid.';
+        } else if (apiResponse.status === 401) {
+          errorMessage = 'Authentication error with Imagen API. Please check credentials.';
+        } else if (apiResponse.status === 403) {
+          errorMessage = 'Permission denied by Imagen API. Check your quota and permissions.';
+        } else if (apiResponse.status === 429) {
+          errorMessage = 'Rate limit exceeded. Please try again in a few moments.';
+        } else if (apiResponse.status >= 500) {
+          errorMessage = 'Imagen API server error. Please try again later.';
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const result = await apiResponse.json();
@@ -199,16 +310,18 @@ export async function POST(request: NextRequest) {
         imageUrl: `data:${mimeType};base64,${imageBase64}`,
         metadata: {
           modelUsed: modelId,
-          prompt: sanitizedPrompt,
+          prompt: finalPrompt.substring(0, 300) + (finalPrompt.length > 300 ? '...' : ''),
+          personDescription: personDescription.substring(0, 200) + (personDescription.length > 200 ? '...' : ''),
           timestamp: new Date().toISOString(),
           hasUploadedPhoto: !!validatedData.selfieDataUrl,
           avatarUsed: validatedData.avatarSelection || null,
           aspectRatio: validatedData.aspect,
-          apiProvider: 'Google Vertex AI Imagen',
+          apiProvider: 'Google Vertex AI Imagen 4 + Gemini Vision',
           mimeType,
-          generationType: validatedData.selfieDataUrl ? 'image-editing' : 'text-to-image',
-          modelType: validatedData.selfieDataUrl ? 'imagen-edit' : 'imagen-generate',
-          requiresClientOverlay: false // AI handles the integration now
+          generationType: 'text-to-image-with-vision-analysis',
+          modelType: 'imagen-4-with-gemini-vision',
+          requiresClientOverlay: false,
+          approach: 'two-step: gemini-vision-analysis -> imagen-text-to-image'
         }
       };
 

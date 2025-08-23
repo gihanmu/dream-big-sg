@@ -1,8 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import Image from 'next/image';
 import { getCareerDisplayName, getLocationDisplayName } from '@/lib/prompts';
 
 interface PosterFrameProps {
@@ -18,6 +17,18 @@ interface PosterFrameProps {
   isLoading?: boolean;
 }
 
+// Generate stable sparkle positions
+const generateSparkles = () => {
+  // Use deterministic values based on index to avoid hydration mismatch
+  return Array.from({ length: 10 }, (_, i) => ({
+    id: i,
+    left: ((i * 37) % 100),
+    top: ((i * 43) % 100),
+    duration: 2 + (i % 3),
+    delay: (i % 4) * 0.5
+  }));
+};
+
 export default function PosterFrame({
   imageUrl,
   title,
@@ -31,6 +42,12 @@ export default function PosterFrame({
   isLoading = false
 }: PosterFrameProps) {
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [sparkles] = useState(generateSparkles);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleSave = async () => {
     try {
@@ -322,31 +339,33 @@ export default function PosterFrame({
         </div>
       </motion.div>
 
-      {/* Floating Sparkles */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {[...Array(10)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute text-yellow-400"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-            }}
-            animate={{
-              scale: [1, 1.5, 1],
-              opacity: [0.5, 1, 0.5],
-              rotate: [0, 180, 360],
-            }}
-            transition={{
-              duration: 2 + Math.random() * 2,
-              repeat: Infinity,
-              delay: Math.random() * 2,
-            }}
-          >
-            ✨
-          </motion.div>
-        ))}
-      </div>
+      {/* Floating Sparkles - Only render on client to avoid hydration mismatch */}
+      {mounted && (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          {sparkles.map((sparkle) => (
+            <motion.div
+              key={sparkle.id}
+              className="absolute text-yellow-400"
+              style={{
+                left: `${sparkle.left}%`,
+                top: `${sparkle.top}%`,
+              }}
+              animate={{
+                scale: [1, 1.5, 1],
+                opacity: [0.5, 1, 0.5],
+                rotate: [0, 180, 360],
+              }}
+              transition={{
+                duration: sparkle.duration,
+                repeat: Infinity,
+                delay: sparkle.delay,
+              }}
+            >
+              ✨
+            </motion.div>
+          ))}
+        </div>
+      )}
     </motion.div>
   );
 }

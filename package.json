@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev --turbopack --port 7788",
     "dev:https": "next dev --turbopack --experimental-https",
     "build": "next build --turbopack",
     "start": "next start",
@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@google-cloud/vertexai": "^1.10.0",
+    "@google/generative-ai": "^0.24.1",
     "file-type": "^21.0.0",
     "framer-motion": "^12.23.12",
     "google-auth-library": "^10.2.1",

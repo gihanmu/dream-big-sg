@@ -91,7 +91,18 @@ export default function ResultPage() {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        
+        // Try to get more specific error message from response
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+          console.error('❌ [Result Page] API Error Details:', errorData);
+        } catch (jsonError) {
+          console.error('❌ [Result Page] Could not parse error response:', jsonError);
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const result: GenerationResult = await response.json();
@@ -130,6 +141,8 @@ export default function ResultPage() {
   };
 
   const handleRegenerate = () => {
+    console.log('🔄 [Result Page] Generate Again button clicked');
+    setGeneratedImage(null);
     generatePoster();
   };
 
