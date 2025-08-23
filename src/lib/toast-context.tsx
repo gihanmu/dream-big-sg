@@ -84,7 +84,7 @@ export const ToastProvider = ({ children }: ToastProviderProps) => {
       
       {/* Toast Container */}
       <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 space-y-3 pointer-events-none">
-        <AnimatePresence mode="multiple">
+        <AnimatePresence mode="popLayout">
           {toasts.map((toast) => (
             <div key={toast.id} className="pointer-events-auto">
               <ToastNotification

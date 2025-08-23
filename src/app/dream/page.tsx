@@ -47,6 +47,34 @@ export default function DreamPage() {
     }
   }, [isLoading, isAuthenticated, router]);
 
+  // Reset form when currentPosterData is cleared (e.g., on start over)
+  useEffect(() => {
+    const hasData = currentPosterData.career || currentPosterData.background || currentPosterData.activity;
+    
+    if (!hasData) {
+      // Reset form to initial state
+      setFormData({
+        career: '',
+        background: '',
+        activity: '',
+        selfieDataUrl: ''
+      });
+      setCurrentStep(0);
+      setErrors({});
+      setIsGenerating(false);
+      setShowCustomCareerModal(false);
+      setCustomCareerSearchTerm('');
+    } else {
+      // Update form with current data
+      setFormData(prev => ({
+        ...prev,
+        career: currentPosterData.career || prev.career,
+        background: currentPosterData.background || prev.background,
+        activity: currentPosterData.activity || prev.activity
+      }));
+    }
+  }, [currentPosterData]);
+
   const steps = [
     { title: 'Choose Your Career', subtitle: 'What superhero job will you have?' },
     { title: 'Pick Your Location', subtitle: 'Where in Singapore will you work?' },

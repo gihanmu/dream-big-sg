@@ -171,6 +171,17 @@ export default function ResultPage() {
       audioRef.current.pause();
       audioRef.current = null;
     }
+    
+    // Clear all previous selections and data
+    const { clearPosterData } = useAppStore.getState();
+    clearPosterData();
+    
+    // Clear session storage
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('dreamBigSelfie');
+      sessionStorage.removeItem('dreamBigAvatar');
+    }
+    
     router.push('/dream');
   };
 
