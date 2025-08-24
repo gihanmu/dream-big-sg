@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
     const geminiApiKey = process.env.GEMINI_API_KEY;
     
     // Use latest Imagen 4 model for text-to-image generation (2024-2025)
-    const modelId = process.env.IMAGEN_MODEL_ID || 'imagen-4.0-ultra-generate-001';
+    const modelId = process.env.IMAGEN_MODEL_ID || 'imagen-3.0-capability-001';
     
     console.log('🎯 [Model Selection] Using Imagen 4 model:', modelId);
    
@@ -199,6 +199,7 @@ export async function POST(request: NextRequest) {
 
       // STEP 1: Analyze image with Gemini to get person description
       console.log('🔍 [Step 1] Starting Gemini vision analysis...');
+   
       
       let personDescription: string;
       try {
@@ -250,17 +251,33 @@ Avoid legible signage or text on clothing, buildings, or props.`;
       
       // STEP 3: Prepare request for Imagen API (pure text-to-image format)
       console.log('🚀 [Step 3] Preparing Imagen API request...');
+      const m = base64Match[2].match(/^data:image\/\w+;base64,(.+)$/);
+      const base64 = m ? m[1] : base64Match[2];
       
       const requestPayload = {
         instances: [
           {
-            prompt: finalPrompt
+            prompt: finalPrompt,
+            referenceImages : [
+              {
+                "referenceType": "REFERENCE_TYPE_SUBJECT",
+                "referenceId": 1,
+                "referenceImage": {
+                  "bytesBase64Encoded": base64
+                },
+                "subjectImageConfig": {
+                  "subjectType": "SUBJECT_TYPE_PERSON",
+                  "subjectDescription": "person"
+                }
+              }
+            ]
           }
         ],
         parameters: {
           sampleCount: 1,
           aspectRatio: validatedData.aspect.replace(':', ':'),
           safetyFilterLevel: "block_few",
+          personGeneration: "ALLOW_ALL",
           outputDimension: {
             widthPixels: 4096,
             heightPixels: 4096
@@ -268,7 +285,7 @@ Avoid legible signage or text on clothing, buildings, or props.`;
         }
       };
 
-      console.log('📤 [Imagen API] Text-to-image payload prepared');
+    
       console.log('🎯 [DEBUG] Model being used:', modelId);
       console.log('🎯 [DEBUG] Using text-to-image generation (no image input)');
       console.log('🎯 [DEBUG] Enhanced prompt length:', requestPayload.instances[0].prompt?.length);
