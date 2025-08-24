@@ -112,19 +112,18 @@ export async function POST(request: NextRequest) {
 
     // Parse and validate request body
     const body = await request.json();
-    console.log('📥 [Imagen API] Request body:', JSON.stringify(body, null, 2));
     
     const validatedData = generateRequestSchema.parse(body);
-    console.log('✅ [Imagen API] Request validation passed');
+    console.log('✅ [Imagen API] Request validated for', {
+      career: validatedData.career,
+      background: validatedData.background,
+      selectedModel: validatedData.selectedModel,
+      hasImage: !!validatedData.selfieDataUrl
+    });
 
     // Sanitize text inputs
     const sanitizedPrompt = sanitizeText(validatedData.prompt);
     const sanitizedBgHint = validatedData.bgHint ? sanitizeText(validatedData.bgHint) : undefined;
-    
-    console.log('🔧 [Imagen API] Sanitized prompt:', sanitizedPrompt);
-    console.log('🔧 [Imagen API] Background hint:', sanitizedBgHint);
-    console.log('👤 [Imagen API] Has selfie data:', !!validatedData.selfieDataUrl);
-    console.log('👤 [Imagen API] Avatar selection:', body.avatarSelection || 'None');
 
     // Check for required environment variables
     const projectId = process.env.GOOGLE_PROJECT_ID;
@@ -139,7 +138,6 @@ export async function POST(request: NextRequest) {
     if (selectedModelType === 'lucky') {
       const randomChoice = Math.random() < 0.5 ? 'realistic' : 'detailed';
       actualSelectedModel = randomChoice;
-      console.log('🎲 [Lucky Selection] Randomly chose:', randomChoice);
     }
     
     // Select model ID based on choice
@@ -147,9 +145,11 @@ export async function POST(request: NextRequest) {
       ? process.env.IMAGEN_MODEL_ID_3 || 'imagen-3.0-capability-001'
       : process.env.IMAGEN_MODEL_ID || 'imagen-4.0-ultra-generate-001';
       
-    console.log('🎯 [Model Selection] User selected:', selectedModelType);
-    console.log('🎯 [Model Selection] Using model:', modelId);
-    console.log('🎯 [Model Selection] Actual model type:', actualSelectedModel);
+    console.log('🎯 [Model Selection]', {
+      requested: selectedModelType,
+      actual: actualSelectedModel,
+      modelId: modelId
+    });
    
     if (!projectId) {
       return NextResponse.json(
@@ -171,8 +171,6 @@ export async function POST(request: NextRequest) {
 
     
     // REAL IMAGEN API IMPLEMENTATION
-    console.log('⏳ [Imagen API] Calling Google Vertex AI Imagen API...');
-    
     try {
       // Get Google Cloud credentials
       const credentials = process.env.GOOGLE_VERTEX_CREDENTIALS_JSON 
@@ -207,9 +205,6 @@ export async function POST(request: NextRequest) {
 
       // Construct the Imagen API endpoint
       const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${modelId}:predict`;
-      
-      console.log('🔗 [Imagen API] Initial Endpoint:', endpoint);
-      console.log('🎯 [Imagen API] Initial Model ID:', modelId);
 
       // Validate that photo is always provided
       if (!validatedData.selfieDataUrl) {
@@ -229,7 +224,6 @@ export async function POST(request: NextRequest) {
       }
 
       // STEP 1: Analyze image with Gemini to get person description
-      console.log('🔍 [Step 1] Starting Gemini vision analysis...');
       
       let personDescription: string;
       try {
@@ -242,17 +236,12 @@ export async function POST(request: NextRequest) {
         if (personDescription === "a person") {
           console.warn('⚠️ [Gemini Vision] Analysis returned generic fallback description');
         }
-        
-        console.log('👤 [Gemini Vision] Person description:', personDescription.substring(0, 150) + '...');
-        console.log('✅ [Step 1] Gemini vision analysis completed successfully');
       } catch (geminiError) {
         console.error('❌ [Step 1] Gemini vision analysis failed:', geminiError);
         personDescription = "a person with a friendly appearance";
-        console.log('🔄 [Step 1] Using fallback person description');
       }
       
       // STEP 2: Create enhanced prompt combining person description with context
-      console.log('📝 [Step 2] Creating enhanced prompt...');
       
       // Extract age information from person description for better prompting
       const descLower = personDescription.toLowerCase();
@@ -325,20 +314,15 @@ NO text, captions, watermarks, or written elements anywhere in the image.`;
       // Validate prompt length (Imagen has limits)
       const MAX_PROMPT_LENGTH = 2000;
       if (enhancedPrompt.length > MAX_PROMPT_LENGTH) {
-        console.warn(`⚠️ [Step 2] Enhanced prompt too long (${enhancedPrompt.length} chars), truncating to ${MAX_PROMPT_LENGTH}`);
-        console.log('✂️ [Step 2] Using truncated prompt');
+        console.warn(`⚠️ Prompt too long (${enhancedPrompt.length} chars), truncating to ${MAX_PROMPT_LENGTH}`);
       }
       
       const finalPrompt = enhancedPrompt.length > MAX_PROMPT_LENGTH 
         ? enhancedPrompt.substring(0, MAX_PROMPT_LENGTH - 3) + '...'
         : enhancedPrompt;
       
-      console.log('✨ [Step 2] Enhanced prompt length:', finalPrompt.length);
-      console.log('📝 [Step 2] Preview:', finalPrompt.substring(0, 300) + (finalPrompt.length > 300 ? '...' : ''));
-      console.log('✅ [Step 2] Enhanced prompt created successfully');
       
       // STEP 3: Prepare request for Imagen API with model-specific format
-      console.log('🚀 [Step 3] Preparing Imagen API request...');
       
       const base64 = base64Match[2];
       let requestPayload;
@@ -375,7 +359,6 @@ NO text, captions, watermarks, or written elements anywhere in the image.`;
             }
           }
         };
-        console.log('📤 [Imagen API] Reference image payload prepared (realistic)');
       } else {
         // Use text-only payload for imagen-4.0-ultra-generate-001
         requestPayload = {
@@ -394,18 +377,10 @@ NO text, captions, watermarks, or written elements anywhere in the image.`;
             }
           }
         };
-        console.log('📤 [Imagen API] Text-to-image payload prepared (detailed)');
       }
-      
-      console.log('🎯 [DEBUG] Model being used:', modelId);
-      console.log('🎯 [DEBUG] Generation type:', actualSelectedModel === 'realistic' ? 'reference image' : 'text-to-image');
-      console.log('🎯 [DEBUG] Enhanced prompt length:', requestPayload.instances[0].prompt?.length);
-      console.log('🎯 [DEBUG] Has reference image:', actualSelectedModel === 'realistic');
-      console.log('🎯 [DEBUG] Endpoint:', endpoint);
 
       // STEP 4: Make the API call to Imagen
-      console.log('🚀 [Step 4] Calling Imagen API with model:', modelId);
-      console.log('📡 [Step 4] Endpoint:', endpoint);
+      console.log('🚀 [Imagen API] Calling model:', modelId);
       
       let apiResponse: Response;
       try {
@@ -455,8 +430,7 @@ NO text, captions, watermarks, or written elements anywhere in the image.`;
       const imageBase64 = result.predictions[0].bytesBase64Encoded;
       const mimeType = result.predictions[0].mimeType || 'image/png';
       
-      console.log('🖼️ [Imagen API] Image generated successfully');
-      console.log('📊 [Imagen API] Image size (base64):', imageBase64.length, 'characters');
+      console.log('✅ [Imagen API] Image generated successfully');
 
       const response = {
         success: true,
@@ -583,9 +557,7 @@ NO text, captions, watermarks, or written elements anywhere in the image.`;
         }
       };
 
-      console.log('✨ [Imagen API] Image generation successful (fallback)');
-      console.log('🖼️ [Imagen API] Generated image URL (first 100 chars):', response.imageUrl.substring(0, 100) + '...');
-      console.log('📊 [Imagen API] Response metadata:', response.metadata);
+      console.log('✅ [Imagen API] Fallback image generated');
       
       return NextResponse.json(response);
     }
