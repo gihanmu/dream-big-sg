@@ -66,8 +66,15 @@ function getLocationDetails(locationValue: string): { name: string; description:
 export function generateImagenPrompt(data: PosterData): string {
   const locationDetails = getLocationDetails(data.background);
   
-  // Always use image-editing prompt since camera photo is required
-  return `Create a professional poster showing [1] as a ${data.career} ${data.activity} at ${locationDetails.name} in Singapore. The scene must prominently feature the iconic ${locationDetails.landmarks} in the background. [1] should wear appropriate ${data.career} attire and equipment. Style: Vibrant, inspirational superhero poster with bright colors and dynamic composition. The Singapore landmark ${locationDetails.name} must be immediately recognizable with clear details of ${locationDetails.landmarks}. Professional photography quality, poster-worthy composition.`;
+  // Adaptive prompt that works for both children and adults
+  // Note: The API will determine age from photo analysis and adjust accordingly
+  return `Create an inspiring professional superhero poster showing [1] as a successful ${data.career} ${data.activity} at ${locationDetails.name} in Singapore. 
+Transform appropriately: For young users, show their future adult self (age 25-30). For adult users, show superhero version at current age.
+The scene features ${locationDetails.landmarks} with modern/futuristic elements as appropriate.
+[1] wears professional ${data.career} attire with suitable equipment, showing confidence and success.
+Style: Inspirational superhero poster - for kids showing "your future self", for adults showing "your superhero professional self".
+Preserve facial identity while applying appropriate transformation (aging for kids, enhancement for adults).
+Setting should feature recognizable Singapore landmarks with enhancement appropriate to the subject's transformation.`;
 }
 
 export const CAREER_OPTIONS = [

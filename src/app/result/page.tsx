@@ -33,6 +33,7 @@ export default function ResultPage() {
   const [isGenerating, setIsGenerating] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [lastUsedModel, setLastUsedModel] = useState<'realistic' | 'detailed' | 'lucky' | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -61,7 +62,7 @@ export default function ResultPage() {
     };
   }, []);
 
-  const generatePoster = async () => {
+  const generatePoster = async (overrideModel?: 'realistic' | 'detailed' | 'lucky') => {
     console.log('🎨 [Result Page] Starting poster generation');
     
     try {
@@ -99,6 +100,30 @@ export default function ResultPage() {
       console.log('📝 [Result Page] Generated prompt:', prompt);
       console.log('👤 [Result Page] Has selfie:', !!selfieDataUrl);
 
+      // Determine which model to use
+      let selectedModel: 'realistic' | 'detailed' | 'lucky';
+      
+      if (overrideModel) {
+        selectedModel = overrideModel;
+      } else if (lastUsedModel) {
+        // Cycle only between detailed and realistic (skip lucky in cycling)
+        if (lastUsedModel === 'lucky') {
+          // If last was lucky, start with detailed for cycling
+          selectedModel = 'detailed';
+        } else {
+          // Cycle between detailed and realistic only
+          const models: ('detailed' | 'realistic')[] = ['detailed', 'realistic'];
+          const currentIndex = models.indexOf(lastUsedModel as 'detailed' | 'realistic');
+          selectedModel = models[(currentIndex + 1) % models.length];
+        }
+      } else {
+        // First generation - get from sessionStorage
+        selectedModel = (sessionStorage.getItem('dreamBigSelectedModel') as 'realistic' | 'detailed' | 'lucky') || 'detailed';
+      }
+      
+      console.log('🎯 [Result Page] Using model:', selectedModel);
+      setLastUsedModel(selectedModel);
+
       const requestData = {
         prompt,
         career: currentPosterData.career,
@@ -106,7 +131,8 @@ export default function ResultPage() {
         activity: currentPosterData.activity,
         aspect: '4:3',
         selfieDataUrl,
-        bgHint: currentPosterData.background
+        bgHint: currentPosterData.background,
+        selectedModel
       };
       
       console.log('🚀 [Result Page] Sending request to /api/imagen:', requestData);
@@ -294,6 +320,17 @@ export default function ResultPage() {
           onAddToGallery={handleAddToGallery}
           onStartOver={handleStartOver}
           isLoading={isGenerating}
+          currentModel={lastUsedModel}
+          nextModel={lastUsedModel ? (() => {
+            // Show next model in cycling (only between detailed and realistic)
+            if (lastUsedModel === 'lucky') {
+              return 'detailed';
+            } else {
+              const models: ('detailed' | 'realistic')[] = ['detailed', 'realistic'];
+              const currentIndex = models.indexOf(lastUsedModel as 'detailed' | 'realistic');
+              return models[(currentIndex + 1) % models.length];
+            }
+          })() : null}
         />
 
         {/* Navigation */}

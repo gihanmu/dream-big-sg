@@ -15,6 +15,8 @@ interface PosterFrameProps {
   onAddToGallery: () => void;
   onStartOver: () => void;
   isLoading?: boolean;
+  currentModel?: 'realistic' | 'detailed' | 'lucky' | null;
+  nextModel?: 'realistic' | 'detailed' | 'lucky' | null;
 }
 
 // Generate stable sparkle positions
@@ -39,7 +41,9 @@ export default function PosterFrame({
   onRegenerate,
   onAddToGallery,
   onStartOver,
-  isLoading = false
+  isLoading = false,
+  currentModel,
+  nextModel
 }: PosterFrameProps) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -290,7 +294,14 @@ export default function PosterFrame({
           disabled={isLoading}
         >
           <span>🎲</span>
-          <span>Surprise Me Again</span>
+          <div className="flex flex-col items-start">
+            <span>Surprise Me Again</span>
+            {nextModel && (
+              <span className="text-xs opacity-75">
+                Next: {nextModel === 'realistic' ? '👤 Face Match' : '✨ Detailed'}
+              </span>
+            )}
+          </div>
         </motion.button>
 
         <motion.button
@@ -335,7 +346,7 @@ export default function PosterFrame({
         className="mt-4 bg-white/90 backdrop-blur-sm rounded-xl p-6 shadow-lg"
       >
         <h2 className="text-2xl font-bold text-gray-800 mb-4 text-center">{title}</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
           <div>
             <h3 className="font-bold text-purple-600 mb-1">Career</h3>
             <p className="text-gray-700">{getCareerDisplayName(career)}</p>
@@ -348,6 +359,16 @@ export default function PosterFrame({
             <h3 className="font-bold text-purple-600 mb-1">Activity</h3>
             <p className="text-gray-700 text-sm">{activity}</p>
           </div>
+          {currentModel && (
+            <div>
+              <h3 className="font-bold text-purple-600 mb-1">Style</h3>
+              <p className="text-gray-700 text-sm">
+                {currentModel === 'realistic' ? '👤 Face Match' : 
+                 currentModel === 'detailed' ? '✨ Detailed' : 
+                 '🎲 Lucky'}
+              </p>
+            </div>
+          )}
         </div>
       </motion.div>
 

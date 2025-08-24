@@ -14,6 +14,7 @@ const generateRequestSchema = z.object({
   career: z.string().optional(),
   background: z.string().optional(),
   activity: z.string().optional(),
+  selectedModel: z.enum(['realistic', 'detailed', 'lucky']).optional(),
 });
 
 // Function to analyze image with Gemini and generate person description
@@ -27,23 +28,38 @@ async function analyzeImageWithGemini(imageBase64: string, imageMimeType: string
 
     const parts = [
       {
-        text: `Please describe the person visible in an uploaded selfie in detail for creating a superhero poster. 
-Focus only on what is visually observable and avoid guessing identity, name, or private details. 
+        text: `Please analyze this young person's photo to help create their future adult professional visualization.
+Focus on features that will persist into adulthood for accurate age progression.
 
-Include:
-- overall build and body proportions,
-- apparent age bracket (choose from: young child, teenager, young adult, adult, older adult),
-- face shape and distinctive landmarks,
-- hairstyle, length, and texture,
-- eye shape and visible color tone,
-- skin tone (neutral terms like "light", "medium", "tan", "deep", with undertone if visible),
-- clothing layers, colors, and patterns (describe generically, not by brand),
-- visible accessories (e.g., glasses, hats, jewelry, bag, watch),
-- pose, orientation, and facial expression,
-- lighting conditions, camera angle, and background context,
-- any notable but non-sensitive distinctive features (e.g., freckles, dimples, birthmarks).
+CRITICAL - Determine current age:
+- Specific age estimate (e.g., "approximately 8 years old", "around 25 years old")
+- If child (5-12): note as "young child requiring 20+ year age progression"
+- If teenager (13-17): note as "teenager requiring 10-15 year age progression"
+- If young adult (18-24): note as "young adult requiring 5-10 year career progression"
+- If adult (25-40): note as "adult requiring superhero transformation at current age"
+- If mature adult (40+): note as "mature adult requiring expert mentor transformation"
 
-The description must remain factual, neutral, and specific enough to guide an image generation model to recreate a visually similar character for a poster.`
+Core facial features to preserve in adult version:
+- Face shape and bone structure (will remain constant)
+- Eye shape, spacing, and color
+- Nose shape and proportions
+- Ear shape and size relative to head
+- Distinctive features (dimples, chin shape, eyebrow arch)
+- Smile characteristics and mouth shape
+
+Current appearance details:
+- Current height/build estimation
+- Hair color and texture (may change with age)
+- Skin tone with specific description
+- Any glasses or likely permanent accessories
+
+Features that should mature in adult version:
+- Face should elongate and mature appropriately
+- Professional adult hairstyle evolution
+- Adult body proportions and height
+- Mature facial features while keeping identity
+
+End with: "For age progression: transform from [current age] to professional adult (age 25-30)"`
       },
       {
         inlineData: {
@@ -115,10 +131,25 @@ export async function POST(request: NextRequest) {
     const location = process.env.GOOGLE_LOCATION || 'us-central1';
     const geminiApiKey = process.env.GEMINI_API_KEY;
     
-    // Use latest Imagen 4 model for text-to-image generation (2024-2025)
-    const modelId = process.env.IMAGEN_MODEL_ID || 'imagen-4.0-ultra-generate-001';
+    // Determine model based on user selection
+    let selectedModelType = validatedData.selectedModel || 'detailed'; // Default to detailed if not specified
+    let actualSelectedModel = selectedModelType;
     
-    console.log('🎯 [Model Selection] Using Imagen 4 model:', modelId);
+    // Handle Lucky Me random selection
+    if (selectedModelType === 'lucky') {
+      const randomChoice = Math.random() < 0.5 ? 'realistic' : 'detailed';
+      actualSelectedModel = randomChoice;
+      console.log('🎲 [Lucky Selection] Randomly chose:', randomChoice);
+    }
+    
+    // Select model ID based on choice
+    const modelId = actualSelectedModel === 'realistic' 
+      ? process.env.IMAGEN_MODEL_ID_3 || 'imagen-3.0-capability-001'
+      : process.env.IMAGEN_MODEL_ID || 'imagen-4.0-ultra-generate-001';
+      
+    console.log('🎯 [Model Selection] User selected:', selectedModelType);
+    console.log('🎯 [Model Selection] Using model:', modelId);
+    console.log('🎯 [Model Selection] Actual model type:', actualSelectedModel);
    
     if (!projectId) {
       return NextResponse.json(
@@ -223,15 +254,73 @@ export async function POST(request: NextRequest) {
       // STEP 2: Create enhanced prompt combining person description with context
       console.log('📝 [Step 2] Creating enhanced prompt...');
       
-      const enhancedPrompt = `A professional, text-free poster featuring ${personDescription}
-visually represented as a ${validatedData.career || "hero"} performing ${validatedData.activity || "a high-energy heroic action"}.
-Set at ${sanitizedBgHint || "an iconic Singapore setting"}.
+      // Extract age information from person description for better prompting
+      const descLower = personDescription.toLowerCase();
+      const isChild = descLower.includes('young child');
+      const isTeenager = descLower.includes('teenager');
+      const isYoungAdult = descLower.includes('young adult') && descLower.includes('career progression');
+      const isAdult = descLower.includes('adult requiring superhero transformation');
+      const isMatureAdult = descLower.includes('mature adult') || descLower.includes('expert mentor');
+      
+      // Create age-appropriate progression messages
+      let ageProgression, transformationType, timeContext;
+      
+      if (isChild) {
+        ageProgression = "Show this young person grown up 20 years into the future as a successful adult professional (age 25-30). ";
+        transformationType = "future adult self";
+        timeContext = "in the year 2045";
+      } else if (isTeenager) {
+        ageProgression = "Show this teenager matured 10-15 years into the future as an established young professional (age 25-30). ";
+        transformationType = "future professional self";
+        timeContext = "in the year 2035";
+      } else if (isYoungAdult) {
+        ageProgression = "Transform this young adult into an experienced professional 5-10 years in the future (age 28-35), showing career advancement and expertise. ";
+        transformationType = "experienced professional self";
+        timeContext = "in the near future";
+      } else if (isAdult) {
+        ageProgression = "Transform this adult into a superhero version of themselves at their current age, with enhanced professional presence and heroic styling. ";
+        transformationType = "superhero professional self";
+        timeContext = "in present-day Singapore";
+      } else if (isMatureAdult) {
+        ageProgression = "Transform this distinguished professional into an expert mentor figure and superhero leader, showing wisdom and mastery in their field. ";
+        transformationType = "master mentor self";
+        timeContext = "at the peak of their career";
+      } else {
+        // Fallback for unclear age
+        ageProgression = "Transform into a confident, successful professional version of themselves. ";
+        transformationType = "best professional self";
+        timeContext = "in their prime";
+      }
+      
+      const enhancedPrompt = `${ageProgression}Create an inspiring poster showing ${personDescription}
+transformed into their ${transformationType} as a successful ${validatedData.career || "professional"} performing ${validatedData.activity || "professional duties with confidence"}.
+Setting: ${sanitizedBgHint || "Singapore"} ${timeContext}.
 
-Convey the action purely through body pose, motion blur, lighting, and effects—no words.
-Cinematic, photorealistic details; vibrant but natural colors; dynamic composition.
-Ultra-high resolution (4096×4096 or higher), sharp edges, poster-ready artwork suitable for large print.
-Do NOT include any text, captions, titles, speech bubbles, letters, numbers, watermarks, or logos.
-Avoid legible signage or text on clothing, buildings, or props.`;
+CRITICAL INSTRUCTIONS:
+${isChild || isTeenager ? 
+`- Age the person appropriately to show them as a mature adult professional (25-30 years old)
+- Show realistic adult development: mature facial structure, adult height and professional build` :
+isYoungAdult ?
+`- Show career progression: more experienced, confident, and established in their field
+- Slightly mature their appearance while maintaining youthful energy` :
+isAdult ?
+`- Maintain current age but enhance with superhero transformation
+- Show peak professional confidence and heroic presence` :
+isMatureAdult ?
+`- Show as distinguished expert and leader in their field
+- Emphasize wisdom, experience, and mentorship qualities` :
+`- Transform into their best professional self`}
+- Preserve their core facial identity: maintain eye shape, nose structure, face shape, and distinctive features
+- Professional attire and equipment appropriate for a ${validatedData.career || "professional"}
+- Confident, successful, inspiring superhero-style pose showing achievement and capability
+${isChild || isTeenager || isYoungAdult ? 
+`- Futuristic elements showing advanced technology and modern setting` :
+`- Contemporary professional setting with heroic enhancement`}
+
+Visual style: ${isChild || isTeenager ? "Aspirational 'future vision'" : isAdult || isMatureAdult ? "Heroic professional transformation" : "Career advancement"} poster. 
+Cinematic quality with vibrant colors. The person should be recognizable but ${isChild || isTeenager ? "professionally mature" : "heroically enhanced"}.
+Ultra-high resolution, sharp professional photography, suitable for large format printing.
+NO text, captions, watermarks, or written elements anywhere in the image.`;
       
       // Validate prompt length (Imagen has limits)
       const MAX_PROMPT_LENGTH = 2000;
@@ -248,30 +337,70 @@ Avoid legible signage or text on clothing, buildings, or props.`;
       console.log('📝 [Step 2] Preview:', finalPrompt.substring(0, 300) + (finalPrompt.length > 300 ? '...' : ''));
       console.log('✅ [Step 2] Enhanced prompt created successfully');
       
-      // STEP 3: Prepare request for Imagen API (pure text-to-image format)
+      // STEP 3: Prepare request for Imagen API with model-specific format
       console.log('🚀 [Step 3] Preparing Imagen API request...');
       
-      const requestPayload = {
-        instances: [
-          {
-            prompt: finalPrompt
+      const base64 = base64Match[2];
+      let requestPayload;
+      
+      if (actualSelectedModel === 'realistic') {
+        // Use reference image payload for imagen-3.0-capability-001
+        requestPayload = {
+          instances: [
+            {
+              prompt: finalPrompt,
+              referenceImages : [
+                {
+                  "referenceType": "REFERENCE_TYPE_SUBJECT",
+                  "referenceId": 1,
+                  "referenceImage": {
+                    "bytesBase64Encoded": base64
+                  },
+                  "subjectImageConfig": {
+                    "subjectType": "SUBJECT_TYPE_PERSON",
+                    "subjectDescription": "person"
+                  }
+                }
+              ]
+            }
+          ],
+          parameters: {
+            sampleCount: 1,
+            aspectRatio: validatedData.aspect.replace(':', ':'),
+            safetyFilterLevel: "block_few",
+            personGeneration: "ALLOW_ALL",
+            outputDimension: {
+              widthPixels: 4096,
+              heightPixels: 4096
+            }
           }
-        ],
-        parameters: {
-          sampleCount: 1,
-          aspectRatio: validatedData.aspect.replace(':', ':'),
-          safetyFilterLevel: "block_few",
-          outputDimension: {
-            widthPixels: 4096,
-            heightPixels: 4096
+        };
+        console.log('📤 [Imagen API] Reference image payload prepared (realistic)');
+      } else {
+        // Use text-only payload for imagen-4.0-ultra-generate-001
+        requestPayload = {
+          instances: [
+            {
+              prompt: finalPrompt
+            }
+          ],
+          parameters: {
+            sampleCount: 1,
+            aspectRatio: validatedData.aspect.replace(':', ':'),
+            safetyFilterLevel: "block_few",
+            outputDimension: {
+              widthPixels: 4096,
+              heightPixels: 4096
+            }
           }
-        }
-      };
-
-      console.log('📤 [Imagen API] Text-to-image payload prepared');
+        };
+        console.log('📤 [Imagen API] Text-to-image payload prepared (detailed)');
+      }
+      
       console.log('🎯 [DEBUG] Model being used:', modelId);
-      console.log('🎯 [DEBUG] Using text-to-image generation (no image input)');
+      console.log('🎯 [DEBUG] Generation type:', actualSelectedModel === 'realistic' ? 'reference image' : 'text-to-image');
       console.log('🎯 [DEBUG] Enhanced prompt length:', requestPayload.instances[0].prompt?.length);
+      console.log('🎯 [DEBUG] Has reference image:', actualSelectedModel === 'realistic');
       console.log('🎯 [DEBUG] Endpoint:', endpoint);
 
       // STEP 4: Make the API call to Imagen
@@ -334,18 +463,20 @@ Avoid legible signage or text on clothing, buildings, or props.`;
         imageUrl: `data:${mimeType};base64,${imageBase64}`,
         metadata: {
           modelUsed: modelId,
+          selectedModelType: selectedModelType,
+          actualModelType: actualSelectedModel,
           prompt: finalPrompt.substring(0, 300) + (finalPrompt.length > 300 ? '...' : ''),
           personDescription: personDescription.substring(0, 200) + (personDescription.length > 200 ? '...' : ''),
           timestamp: new Date().toISOString(),
           hasUploadedPhoto: !!validatedData.selfieDataUrl,
           avatarUsed: validatedData.avatarSelection || null,
           aspectRatio: validatedData.aspect,
-          apiProvider: 'Google Vertex AI Imagen 4 + Gemini Vision',
+          apiProvider: actualSelectedModel === 'realistic' ? 'Google Vertex AI Imagen 3 + Gemini Vision' : 'Google Vertex AI Imagen 4 + Gemini Vision',
           mimeType,
-          generationType: 'text-to-image-with-vision-analysis',
-          modelType: 'imagen-4-with-gemini-vision',
+          generationType: actualSelectedModel === 'realistic' ? 'reference-image-with-vision-analysis' : 'text-to-image-with-vision-analysis',
+          modelType: actualSelectedModel === 'realistic' ? 'imagen-3-with-gemini-vision' : 'imagen-4-with-gemini-vision',
           requiresClientOverlay: false,
-          approach: 'two-step: gemini-vision-analysis -> imagen-text-to-image'
+          approach: actualSelectedModel === 'realistic' ? 'two-step: gemini-vision-analysis -> imagen-reference-image' : 'two-step: gemini-vision-analysis -> imagen-text-to-image'
         }
       };
 
