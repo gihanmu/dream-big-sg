@@ -8,7 +8,6 @@ import Camera from '@/components/Camera';
 import CareerTypeahead from '@/components/CareerTypeahead';
 import CustomCareerModal from '@/components/CustomCareerModal';
 import LocationImageGrid from '@/components/LocationImageGrid';
-import ActivitySuggestions from '@/components/ActivitySuggestions';
 import { PosterData } from '@/lib/prompts';
 import { CareerOption } from '@/lib/careers';
 import { LocationOption, LOCATION_OPTIONS } from '@/lib/locations';
@@ -210,8 +209,6 @@ export default function DreamPage() {
         );
 
       case 2:
-        const selectedLocation = LOCATION_OPTIONS.find(loc => loc.value === formData.background);
-        
         return (
           <motion.div
             key="activity"
@@ -220,12 +217,6 @@ export default function DreamPage() {
             exit={{ opacity: 0, x: -50 }}
             className="space-y-6 max-w-md mx-auto"
           >
-            <ActivitySuggestions
-              selectedLocation={selectedLocation || null}
-              currentActivity={formData.activity}
-              onActivityAdd={(newActivity) => setFormData({ ...formData, activity: newActivity })}
-            />
-            
             <div>
               <textarea
                 value={formData.activity}
