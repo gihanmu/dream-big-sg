@@ -1,6 +1,6 @@
 
 import { LOCATION_OPTIONS } from '@/lib/locations';
-import { BASE_CAREER_OPTIONS, getAllCareers } from '@/lib/careers';
+import { getAllCareers } from '@/lib/careers';
 
 export interface PosterData {
   career: string;

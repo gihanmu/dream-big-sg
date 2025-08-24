@@ -59,7 +59,7 @@ export async function validateImageFile(buffer: Buffer): Promise<ImageValidation
       fileSize: buffer.length
     };
 
-  } catch (error) {
+  } catch {
     return {
       isValid: false,
       error: 'Failed to validate file',

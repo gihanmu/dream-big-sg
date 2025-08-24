@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
     const geminiApiKey = process.env.GEMINI_API_KEY;
     
     // Determine model based on user selection
-    let selectedModelType = validatedData.selectedModel || 'detailed'; // Default to detailed if not specified
+    const selectedModelType = validatedData.selectedModel || 'detailed'; // Default to detailed if not specified
     let actualSelectedModel = selectedModelType;
     
     // Handle Lucky Me random selection

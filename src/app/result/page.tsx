@@ -50,6 +50,7 @@ export default function ResultPage() {
 
       generatePoster();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, isAuthenticated, currentPosterData.career, currentPosterData.background, currentPosterData.activity]);
 
   // Cleanup audio when component unmounts

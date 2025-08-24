@@ -247,6 +247,7 @@ export default function PosterFrame({
                   transition={{ duration: 0.5 }}
                   className="relative w-full h-full"
                 >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={imageUrl}
                     alt={`Superhero poster: ${title}`}

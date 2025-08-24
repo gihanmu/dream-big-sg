@@ -3,25 +3,22 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { z } from 'zod';
 import Camera from '@/components/Camera';
 import CareerTypeahead from '@/components/CareerTypeahead';
 import CustomCareerModal from '@/components/CustomCareerModal';
 import LocationImageGrid from '@/components/LocationImageGrid';
 import { PosterData } from '@/lib/prompts';
 import { CareerOption } from '@/lib/careers';
-import { LocationOption, LOCATION_OPTIONS } from '@/lib/locations';
+import { LocationOption } from '@/lib/locations';
 import { useAppStore } from '@/lib/store';
 import { useAuth } from '@/hooks/useAuth';
 
-const dreamSchema = z.object({
-  career: z.string().min(1, 'Please select a career'),
-  background: z.string().min(1, 'Please select a location'),
-  activity: z.string().min(3, 'Please describe an activity (at least 3 characters)'),
-  selfieDataUrl: z.string().min(1, 'Please take a selfie photo')
-});
-
-type DreamFormData = z.infer<typeof dreamSchema>;
+type DreamFormData = {
+  career: string;
+  background: string;
+  activity: string;
+  selfieDataUrl: string;
+};
 
 export default function DreamPage() {
   const router = useRouter();
