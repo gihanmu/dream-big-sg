@@ -14,7 +14,7 @@ const generateRequestSchema = z.object({
   career: z.string().optional(),
   background: z.string().optional(),
   activity: z.string().optional(),
-  selectedModel: z.enum(['realistic', 'detailed', 'lucky']).optional(),
+  model: z.enum(['detailed']).optional().default('detailed'),
 });
 
 // Function to analyze image with Gemini and generate person description
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
     console.log('✅ [Imagen API] Request validated for', {
       career: validatedData.career,
       background: validatedData.background,
-      selectedModel: validatedData.selectedModel,
+      model: validatedData.model,
       hasImage: !!validatedData.selfieDataUrl
     });
 
@@ -130,26 +130,9 @@ export async function POST(request: NextRequest) {
     const location = process.env.GOOGLE_LOCATION || 'us-central1';
     const geminiApiKey = process.env.GEMINI_API_KEY;
     
-    // Determine model based on user selection
-    const selectedModelType = validatedData.selectedModel || 'detailed'; // Default to detailed if not specified
-    let actualSelectedModel = selectedModelType;
-    
-    // Handle Lucky Me random selection
-    if (selectedModelType === 'lucky') {
-      const randomChoice = Math.random() < 0.5 ? 'realistic' : 'detailed';
-      actualSelectedModel = randomChoice;
-    }
-    
-    // Select model ID based on choice
-    const modelId = actualSelectedModel === 'realistic' 
-      ? process.env.IMAGEN_MODEL_ID_3 || 'imagen-3.0-capability-001'
-      : process.env.IMAGEN_MODEL_ID || 'imagen-4.0-ultra-generate-001';
-      
-    console.log('🎯 [Model Selection]', {
-      requested: selectedModelType,
-      actual: actualSelectedModel,
-      modelId: modelId
-    });
+    // Use single model only
+    const modelId = process.env.IMAGEN_MODEL_ID || 'imagen-4.0-ultra-generate-001';
+    console.log('🎯 [Model] Using:', modelId);
    
     if (!projectId) {
       return NextResponse.json(
@@ -313,71 +296,38 @@ NO text, captions, watermarks, or written elements anywhere in the image.`;
       
       // Validate prompt length (Imagen has limits)
       const MAX_PROMPT_LENGTH = 2000;
-      if (enhancedPrompt.length > MAX_PROMPT_LENGTH) {
-        console.warn(`⚠️ Prompt too long (${enhancedPrompt.length} chars), truncating to ${MAX_PROMPT_LENGTH}`);
-      }
+      // if (enhancedPrompt.length > MAX_PROMPT_LENGTH) {
+      //   console.warn(`⚠️ Prompt too long (${enhancedPrompt.length} chars), truncating to ${MAX_PROMPT_LENGTH}`);
+      // }
+      // console.log('🔍 [Step 2]  length of prompt:', enhancedPrompt.length);
+      // const finalPrompt = enhancedPrompt.length > MAX_PROMPT_LENGTH 
+      //   ? enhancedPrompt.substring(0, MAX_PROMPT_LENGTH - 3) + '...'
+      //   : enhancedPrompt;
+      const finalPrompt = enhancedPrompt;
+      console.log('====================================');
+      console.log('Prompt:', finalPrompt);
+      console.log('====================================');
       
-      const finalPrompt = enhancedPrompt.length > MAX_PROMPT_LENGTH 
-        ? enhancedPrompt.substring(0, MAX_PROMPT_LENGTH - 3) + '...'
-        : enhancedPrompt;
       
+      // STEP 3: Prepare request for Imagen API with text-only format
       
-      // STEP 3: Prepare request for Imagen API with model-specific format
-      
-      const base64 = base64Match[2];
-      let requestPayload;
-      
-      if (actualSelectedModel === 'realistic') {
-        // Use reference image payload for imagen-3.0-capability-001
-        requestPayload = {
-          instances: [
-            {
-              prompt: finalPrompt,
-              referenceImages : [
-                {
-                  "referenceType": "REFERENCE_TYPE_SUBJECT",
-                  "referenceId": 1,
-                  "referenceImage": {
-                    "bytesBase64Encoded": base64
-                  },
-                  "subjectImageConfig": {
-                    "subjectType": "SUBJECT_TYPE_PERSON",
-                    "subjectDescription": "person"
-                  }
-                }
-              ]
-            }
-          ],
-          parameters: {
-            sampleCount: 1,
-            aspectRatio: validatedData.aspect.replace(':', ':'),
-            safetyFilterLevel: "block_few",
-            personGeneration: "ALLOW_ALL",
-            outputDimension: {
-              widthPixels: 4096,
-              heightPixels: 4096
-            }
+      // Always use imagen-4.0-ultra-generate-001 with text-only payload
+      const requestPayload = {
+        instances: [
+          {
+            prompt: finalPrompt
           }
-        };
-      } else {
-        // Use text-only payload for imagen-4.0-ultra-generate-001
-        requestPayload = {
-          instances: [
-            {
-              prompt: finalPrompt
-            }
-          ],
-          parameters: {
-            sampleCount: 1,
-            aspectRatio: validatedData.aspect.replace(':', ':'),
-            safetyFilterLevel: "block_few",
-            outputDimension: {
-              widthPixels: 4096,
-              heightPixels: 4096
-            }
+        ],
+        parameters: {
+          sampleCount: 1,
+          aspectRatio: validatedData.aspect.replace(':', ':'),
+          safetyFilterLevel: "block_few",
+          outputDimension: {
+            widthPixels: 4096,
+            heightPixels: 4096
           }
-        };
-      }
+        }
+      };
 
       // STEP 4: Make the API call to Imagen
       console.log('🚀 [Imagen API] Calling model:', modelId);
@@ -437,20 +387,19 @@ NO text, captions, watermarks, or written elements anywhere in the image.`;
         imageUrl: `data:${mimeType};base64,${imageBase64}`,
         metadata: {
           modelUsed: modelId,
-          selectedModelType: selectedModelType,
-          actualModelType: actualSelectedModel,
+          modelType: 'detailed',
           prompt: finalPrompt.substring(0, 300) + (finalPrompt.length > 300 ? '...' : ''),
           personDescription: personDescription.substring(0, 200) + (personDescription.length > 200 ? '...' : ''),
           timestamp: new Date().toISOString(),
           hasUploadedPhoto: !!validatedData.selfieDataUrl,
           avatarUsed: validatedData.avatarSelection || null,
           aspectRatio: validatedData.aspect,
-          apiProvider: actualSelectedModel === 'realistic' ? 'Google Vertex AI Imagen 3 + Gemini Vision' : 'Google Vertex AI Imagen 4 + Gemini Vision',
+          apiProvider: 'Google Vertex AI Imagen 4 + Gemini Vision',
           mimeType,
-          generationType: actualSelectedModel === 'realistic' ? 'reference-image-with-vision-analysis' : 'text-to-image-with-vision-analysis',
-          modelType: actualSelectedModel === 'realistic' ? 'imagen-3-with-gemini-vision' : 'imagen-4-with-gemini-vision',
+          generationType: 'text-to-image-with-vision-analysis',
+          modelVersion: 'imagen-4-with-gemini-vision',
           requiresClientOverlay: false,
-          approach: actualSelectedModel === 'realistic' ? 'two-step: gemini-vision-analysis -> imagen-reference-image' : 'two-step: gemini-vision-analysis -> imagen-text-to-image'
+          approach: 'two-step: gemini-vision-analysis -> imagen-text-to-image'
         }
       };
 

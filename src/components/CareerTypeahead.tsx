@@ -170,7 +170,7 @@ export default function CareerTypeahead({ value, onChange, onRequestCustomCareer
                       }`}
                       whileHover={{ backgroundColor: '#faf5ff' }}
                     >
-                      <span className="text-xl">{career.emoji}</span>
+                      <span className="text-3xl">{career.emoji}</span>
                       <div className="flex-1">
                         <div className="font-medium text-gray-800">{career.label}</div>
                         <div className="text-xs text-gray-500">{career.category}</div>
@@ -236,7 +236,7 @@ export default function CareerTypeahead({ value, onChange, onRequestCustomCareer
             <motion.button
               key={career.value}
               onClick={() => handleCareerSelect(career)}
-              className={`p-3 rounded-xl border-2 transition-all duration-300 text-center ${
+              className={`p-6 rounded-xl border-2 transition-all duration-300 text-center min-h-[160px] flex flex-col justify-center ${
                 value === career.value
                   ? 'border-purple-500 bg-purple-100 shadow-lg'
                   : 'border-gray-200 hover:border-purple-300 hover:bg-purple-50'
@@ -244,8 +244,8 @@ export default function CareerTypeahead({ value, onChange, onRequestCustomCareer
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
-              <div className="text-2xl mb-1">{career.emoji}</div>
-              <div className="font-medium text-sm text-gray-800">{career.label}</div>
+              <div className="text-6xl mb-3">{career.emoji}</div>
+              <div className="font-bold text-base text-gray-800">{career.label}</div>
             </motion.button>
           ))}
         </div>

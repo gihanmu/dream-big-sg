@@ -60,9 +60,9 @@ export default function LocationImageGrid({ value, onChange, error }: LocationIm
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
               
               {/* Emoji indicator */}
-              <div className="absolute top-3 right-3 text-2xl bg-white/90 rounded-full w-12 h-12 flex items-center justify-center">
+              {/* <div className="absolute top-3 right-3 text-2xl bg-white/90 rounded-full w-12 h-12 flex items-center justify-center">
                 {location.emoji}
-              </div>
+              </div> */}
 
               {/* Selection indicator */}
               {value === location.value && (
@@ -78,9 +78,9 @@ export default function LocationImageGrid({ value, onChange, error }: LocationIm
 
             {/* Location Info */}
             <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-              <h3 className="font-bold text-lg mb-1">{location.label}</h3>
+              {/* <h3 className="font-bold text-lg mb-1">{location.label}</h3> */}
               <p className="text-sm opacity-90 line-clamp-2">
-                {location.description}
+                {location.label}
               </p>
             </div>
 

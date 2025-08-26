@@ -11,7 +11,7 @@ export const LOCATION_OPTIONS: LocationOption[] = [
   {
     value: 'gardens-by-the-bay',
     label: 'Gardens by the Bay',
-    imageUrl: '/images/locations/gardens-by-the-bay.svg',
+    imageUrl: '/images/locations/gardens-by-the-bay.jpg',
     description: 'Iconic Supertrees and futuristic gardens',
     emoji: '🌸',
     suggestedActivities: [
@@ -25,7 +25,7 @@ export const LOCATION_OPTIONS: LocationOption[] = [
   {
     value: 'marina-bay-sands',
     label: 'Marina Bay Sands',
-    imageUrl: '/images/locations/marina-bay-sands.svg',
+    imageUrl: '/images/locations/marina-bay-sands.jpg',
     description: 'Famous infinity pool and luxury resort',
     emoji: '🏙️',
     suggestedActivities: [
@@ -39,7 +39,7 @@ export const LOCATION_OPTIONS: LocationOption[] = [
   {
     value: 'jewel-changi',
     label: 'Jewel Changi Airport',
-    imageUrl: '/images/locations/jewel-changi.svg',
+    imageUrl: '/images/locations/jewel-changi.jpg',
     description: 'World\'s tallest indoor waterfall',
     emoji: '💎',
     suggestedActivities: [
@@ -51,9 +51,9 @@ export const LOCATION_OPTIONS: LocationOption[] = [
     ]
   },
   {
-    value: 'sentosa-island',
-    label: 'Sentosa Island',
-    imageUrl: '/images/locations/sentosa-island.svg',
+    value: 'universal-studio',
+    label: 'Universal Studios Singapore',
+    imageUrl: '/images/locations/universal-studio.jpg',
     description: 'Beach paradise and theme parks',
     emoji: '🏖️',
     suggestedActivities: [
@@ -67,7 +67,7 @@ export const LOCATION_OPTIONS: LocationOption[] = [
   {
     value: 'botanic-gardens',
     label: 'Singapore Botanic Gardens',
-    imageUrl: '/images/locations/botanic-gardens.svg',
+    imageUrl: '/images/locations/botanic-gardens.jpg',
     description: 'UNESCO World Heritage orchid garden',
     emoji: '🌿',
     suggestedActivities: [
@@ -81,7 +81,7 @@ export const LOCATION_OPTIONS: LocationOption[] = [
   {
     value: 'singapore-flyer',
     label: 'Singapore Flyer',
-    imageUrl: '/images/locations/singapore-flyer.svg',
+    imageUrl: '/images/locations/singapore-flyer.jpg',
     description: 'Giant observation wheel with city views',
     emoji: '🎡',
     suggestedActivities: [
@@ -95,7 +95,7 @@ export const LOCATION_OPTIONS: LocationOption[] = [
   {
     value: 'merlion-park',
     label: 'Merlion Park',
-    imageUrl: '/images/locations/merlion-park.svg',
+    imageUrl: '/images/locations/merlion-park.jpg',
     description: 'Singapore\'s iconic symbol by the bay',
     emoji: '🦁',
     suggestedActivities: [
@@ -109,7 +109,7 @@ export const LOCATION_OPTIONS: LocationOption[] = [
   {
     value: 'national-gallery',
     label: 'National Gallery & Museums',
-    imageUrl: '/images/locations/national-gallery.svg',
+    imageUrl: '/images/locations/national-gallery.jpg',
     description: 'Art, history and culture museums',
     emoji: '🏛️',
     suggestedActivities: [
@@ -120,6 +120,49 @@ export const LOCATION_OPTIONS: LocationOption[] = [
       'making murals that tell stories of Singapore\'s heroes'
     ]
   },
+  {
+    value: 'singapore-zoo',
+    label: 'Singapore Zoo',
+    imageUrl: '/images/locations/singapore-zoo.jpg',
+    description: 'Famous open-concept zoo with wildlife habitats',
+    emoji: '🦁',
+    suggestedActivities: [
+      'talking to animals and guiding them like allies',
+      'summoning protective jungle vines to keep visitors safe',
+      'racing alongside cheetahs with super speed',
+      'healing injured animals with magical powers',
+      'soaring above enclosures to watch over the zoo'
+    ]
+  },
+  {
+    value: 'bird-paradise',
+    label: 'Singapore Bird Paradise',
+    imageUrl: '/images/locations/bird-paradise.jpg',
+    description: 'Home to colorful birds and giant aviaries',
+    emoji: '🦜',
+    suggestedActivities: [
+      'flying with rainbow wings alongside exotic birds',
+      'creating shimmering feather shields in the sky',
+      'singing with magical bird calls that calm the city',
+      'guiding flocks to form protective patterns above Singapore',
+      'summoning a giant phoenix made of light'
+    ]
+  },
+  {
+    value: 'art-science-museum',
+    label: 'Art Science Museum',
+    imageUrl: '/images/locations/art-science-museum.jpg',
+    description: 'Contemporary art and creative exhibitions',
+    emoji: '🎨',
+    suggestedActivities: [
+      'bringing paintings and sculptures to life to defend the city',
+      'painting glowing murals that inspire happiness',
+      'drawing magical doors that open into safe worlds',
+      'splattering colors that turn into shields and weapons of light',
+      'using brush strokes to reshape the environment creatively'
+    ]
+  }
+  ,
   {
     value: 'random-place',
     label: 'Any Random Place',

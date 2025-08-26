@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Camera from '@/components/Camera';
 import CareerTypeahead from '@/components/CareerTypeahead';
 import CustomCareerModal from '@/components/CustomCareerModal';
 import LocationImageGrid from '@/components/LocationImageGrid';
+import MissionBuilder from '@/components/MissionBuilder';
 import { PosterData } from '@/lib/prompts';
 import { CareerOption } from '@/lib/careers';
 import { LocationOption } from '@/lib/locations';
@@ -36,7 +37,11 @@ export default function DreamPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [showCustomCareerModal, setShowCustomCareerModal] = useState(false);
   const [customCareerSearchTerm, setCustomCareerSearchTerm] = useState('');
-  const [selectedModel, setSelectedModel] = useState<'realistic' | 'detailed' | 'lucky' | null>(null);
+
+  const handleActivityChange = useCallback((value: string) => {
+    setFormData(prev => ({ ...prev, activity: value }));
+    setErrors(prev => ({ ...prev, activity: undefined }));
+  }, []);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -73,11 +78,10 @@ export default function DreamPage() {
   }, [currentPosterData]);
 
   const steps = [
-    { title: 'Choose Your Career', subtitle: 'What superhero job will you have?' },
-    { title: 'Pick Your Location', subtitle: 'Where in Singapore will you work?' },
-    { title: 'Describe Your Activity', subtitle: 'What exciting thing will you do?' },
-    { title: 'Add Your Face', subtitle: 'Show us the hero!' },
-    { title: 'Choose Your Style', subtitle: 'Pick how your poster should look!' }
+    { title: 'Pick Your Super Job', subtitle: 'What kind of superhero would you like to be' },
+    { title: 'Pick Your Adventure Place', subtitle: 'Where in Singapore will your story happen' },
+    { title: 'Plan Your Mission', subtitle: 'Tap one from each row to build your story.' },
+    { title: 'Add Your Face', subtitle: 'Show us the hero!' }
   ];
 
   const validateStep = (step: number): boolean => {
@@ -98,11 +102,6 @@ export default function DreamPage() {
       case 3:
         if (!formData.selfieDataUrl) {
           stepErrors.selfieDataUrl = 'Please take a selfie photo';
-        }
-        break;
-      case 4:
-        if (!selectedModel) {
-          stepErrors.career = 'Please select a poster style'; // Using career field for validation
         }
         break;
     }
@@ -164,14 +163,10 @@ export default function DreamPage() {
 
       updatePosterData(posterData);
 
-      // Store camera image data and selected model
+      // Store camera image data
       if (formData.selfieDataUrl) {
         sessionStorage.setItem('dreamBigSelfie', formData.selfieDataUrl);
         sessionStorage.removeItem('dreamBigAvatar'); // Clear any old avatar data
-      }
-      
-      if (selectedModel) {
-        sessionStorage.setItem('dreamBigSelectedModel', selectedModel);
       }
 
       router.push('/result');
@@ -223,23 +218,12 @@ export default function DreamPage() {
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -50 }}
-            className="space-y-6 max-w-md mx-auto"
           >
-            <div>
-              <textarea
-                value={formData.activity}
-                onChange={(e) => setFormData({ ...formData, activity: e.target.value })}
-                placeholder="e.g., flying with Superman, building a robot, saving the day..."
-                className="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all duration-300 min-h-32 resize-none"
-                maxLength={200}
-              />
-              <div className="text-right text-sm text-gray-500 mt-2">
-                {formData.activity.length}/200 characters
-              </div>
-            </div>
-            {errors.activity && (
-              <p className="text-red-500 text-center font-medium">{errors.activity}</p>
-            )}
+            <MissionBuilder
+              value={formData.activity}
+              onChange={handleActivityChange}
+              error={errors.activity}
+            />
           </motion.div>
         );
 
@@ -267,130 +251,6 @@ export default function DreamPage() {
           </motion.div>
         );
 
-      case 4:
-        return (
-          <motion.div
-            key="model-selection"
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -50 }}
-            className="space-y-6 max-w-2xl mx-auto"
-          >
-            <div className="text-center mb-6">
-              <p className="text-gray-600 text-lg">Choose how your superhero poster should look!</p>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Fancy & Detailed Option - FIRST & MOST ATTRACTIVE */}
-              <motion.div
-                className={`relative p-6 rounded-xl border-3 cursor-pointer transition-all duration-300 ${
-                  selectedModel === 'detailed'
-                    ? 'border-purple-500 bg-gradient-to-br from-purple-50 to-pink-50 shadow-xl'
-                    : 'border-purple-300 bg-gradient-to-br from-purple-25 to-pink-25 hover:border-purple-400 hover:shadow-lg'
-                } transform hover:scale-105`}
-                onClick={() => {
-                  setSelectedModel('detailed');
-                  setErrors({ ...errors, career: undefined });
-                }}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <div className="text-center">
-                  <div className="absolute -top-2 -right-2 bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-xs font-bold px-2 py-1 rounded-full">
-                    ⭐ POPULAR
-                  </div>
-                  <div className="text-5xl mb-3">✨</div>
-                  <h3 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
-                    Fancy & Detailed
-                  </h3>
-                  <p className="text-sm text-gray-700 mb-4 font-medium">
-                    🎨 AI creates stunning artistic superhero with incredible details and cinematic quality
-                  </p>
-                  <div className="text-xs text-purple-600 font-semibold">
-                    🚀 Latest AI Technology
-                  </div>
-                  {selectedModel === 'detailed' && (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="absolute top-2 right-2 w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center shadow-lg"
-                    >
-                      <span className="text-white text-lg">✓</span>
-                    </motion.div>
-                  )}
-                </div>
-              </motion.div>
-
-              {/* Face Match Option - SECOND */}
-              <motion.div
-                className={`relative p-6 rounded-xl border-2 cursor-pointer transition-all duration-300 ${
-                  selectedModel === 'realistic'
-                    ? 'border-green-500 bg-green-50 shadow-lg'
-                    : 'border-gray-200 bg-white hover:border-green-300 hover:shadow-md'
-                }`}
-                onClick={() => {
-                  setSelectedModel('realistic');
-                  setErrors({ ...errors, career: undefined });
-                }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <div className="text-center">
-                  <div className="text-4xl mb-3">👤</div>
-                  <h3 className="text-lg font-bold text-gray-800 mb-2">Face Match</h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Keeps your face features while transforming you into a superhero
-                  </p>
-                  {selectedModel === 'realistic' && (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="absolute top-2 right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center"
-                    >
-                      <span className="text-white text-sm">✓</span>
-                    </motion.div>
-                  )}
-                </div>
-              </motion.div>
-
-              {/* Lucky Me Option - THIRD */}
-              <motion.div
-                className={`relative p-6 rounded-xl border-2 cursor-pointer transition-all duration-300 ${
-                  selectedModel === 'lucky'
-                    ? 'border-orange-500 bg-orange-50 shadow-lg'
-                    : 'border-gray-200 bg-white hover:border-orange-300 hover:shadow-md'
-                }`}
-                onClick={() => {
-                  setSelectedModel('lucky');
-                  setErrors({ ...errors, career: undefined });
-                }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <div className="text-center">
-                  <div className="text-4xl mb-3">🎲</div>
-                  <h3 className="text-lg font-bold text-gray-800 mb-2">Lucky Me!</h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Let AI surprise you! Randomly picks between realistic or detailed style
-                  </p>
-                  {selectedModel === 'lucky' && (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="absolute top-2 right-2 w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center"
-                    >
-                      <span className="text-white text-sm">✓</span>
-                    </motion.div>
-                  )}
-                </div>
-              </motion.div>
-            </div>
-
-            {errors.career && (
-              <p className="text-red-500 text-center font-medium">{errors.career}</p>
-            )}
-          </motion.div>
-        );
 
       default:
         return null;

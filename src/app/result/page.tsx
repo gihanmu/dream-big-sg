@@ -33,7 +33,6 @@ export default function ResultPage() {
   const [isGenerating, setIsGenerating] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
-  const [lastUsedModel, setLastUsedModel] = useState<'realistic' | 'detailed' | 'lucky' | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -63,7 +62,7 @@ export default function ResultPage() {
     };
   }, []);
 
-  const generatePoster = async (overrideModel?: 'realistic' | 'detailed' | 'lucky') => {
+  const generatePoster = async () => {
     console.log('🎨 [Result Page] Starting poster generation');
     
     try {
@@ -78,7 +77,7 @@ export default function ResultPage() {
         }
         audioRef.current = new Audio('/audio/result-song.mp3');
         audioRef.current.volume = 0.5;
-        audioRef.current.loop = true; // Keep playing throughout and after generation
+        audioRef.current.loop = false; // Stop after generation completes
         audioRef.current.play().catch(audioError => {
           console.log('Audio playback failed (user interaction required):', audioError);
         });
@@ -101,29 +100,9 @@ export default function ResultPage() {
       console.log('📝 [Result Page] Generated prompt:', prompt);
       console.log('👤 [Result Page] Has selfie:', !!selfieDataUrl);
 
-      // Determine which model to use
-      let selectedModel: 'realistic' | 'detailed' | 'lucky';
-      
-      if (overrideModel) {
-        selectedModel = overrideModel;
-      } else if (lastUsedModel) {
-        // Cycle only between detailed and realistic (skip lucky in cycling)
-        if (lastUsedModel === 'lucky') {
-          // If last was lucky, start with detailed for cycling
-          selectedModel = 'detailed';
-        } else {
-          // Cycle between detailed and realistic only
-          const models: ('detailed' | 'realistic')[] = ['detailed', 'realistic'];
-          const currentIndex = models.indexOf(lastUsedModel as 'detailed' | 'realistic');
-          selectedModel = models[(currentIndex + 1) % models.length];
-        }
-      } else {
-        // First generation - get from sessionStorage
-        selectedModel = (sessionStorage.getItem('dreamBigSelectedModel') as 'realistic' | 'detailed' | 'lucky') || 'detailed';
-      }
-      
+      // Use single model only
+      const selectedModel = 'detailed';
       console.log('🎯 [Result Page] Using model:', selectedModel);
-      setLastUsedModel(selectedModel);
 
       const requestData = {
         prompt,
@@ -133,7 +112,7 @@ export default function ResultPage() {
         aspect: '4:3',
         selfieDataUrl,
         bgHint: currentPosterData.background,
-        selectedModel
+        model: selectedModel
       };
       
       console.log('🚀 [Result Page] Sending request to /api/imagen:', requestData);
@@ -172,6 +151,12 @@ export default function ResultPage() {
         // AI now handles photo integration seamlessly
         setGeneratedImage(result.imageUrl);
         
+        // Stop audio when image generation is complete
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current = null;
+        }
+        
         setShowConfetti(true);
         
         // Hide confetti after animation
@@ -183,6 +168,12 @@ export default function ResultPage() {
     } catch (err) {
       console.error('❌ [Result Page] Error generating poster:', err);
       setError(err instanceof Error ? err.message : 'Failed to generate poster');
+      
+      // Stop audio when generation fails
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -321,17 +312,8 @@ export default function ResultPage() {
           onAddToGallery={handleAddToGallery}
           onStartOver={handleStartOver}
           isLoading={isGenerating}
-          currentModel={lastUsedModel}
-          nextModel={lastUsedModel ? (() => {
-            // Show next model in cycling (only between detailed and realistic)
-            if (lastUsedModel === 'lucky') {
-              return 'detailed';
-            } else {
-              const models: ('detailed' | 'realistic')[] = ['detailed', 'realistic'];
-              const currentIndex = models.indexOf(lastUsedModel as 'detailed' | 'realistic');
-              return models[(currentIndex + 1) % models.length];
-            }
-          })() : null}
+          currentModel={null}
+          nextModel={null}
         />
 
         {/* Navigation */}
