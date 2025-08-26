@@ -17,49 +17,55 @@ const generateRequestSchema = z.object({
   model: z.enum(['detailed']).optional().default('detailed'),
 });
 
-// Function to analyze image with Gemini and generate person description
-async function analyzeImageWithGemini(imageBase64: string, imageMimeType: string, apiKey: string): Promise<string> {
+// Function to generate superhero transformation description with Gemini
+async function generateSuperheroDescription(
+  imageBase64: string, 
+  imageMimeType: string, 
+  apiKey: string, 
+  career: string,
+  location: string,
+  activity: string
+): Promise<string> {
   
   try {
-    console.log('🔍 [Gemini Vision] Analyzing uploaded photo...');
+    console.log('🦸 [Gemini Vision] Creating superhero transformation...');
     
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
     const parts = [
       {
-        text: `Please analyze this young person's photo to help create their future adult professional visualization.
-Focus on features that will persist into adulthood for accurate age progression.
+        text: `Create a detailed superhero poster description by analyzing this photo and transforming the person into a Singapore superhero.
 
-CRITICAL - Determine current age:
-- Specific age estimate (e.g., "approximately 8 years old", "around 25 years old")
-- If child (5-12): note as "young child requiring 20+ year age progression"
-- If teenager (13-17): note as "teenager requiring 10-15 year age progression"
-- If young adult (18-24): note as "young adult requiring 5-10 year career progression"
-- If adult (25-40): note as "adult requiring superhero transformation at current age"
-- If mature adult (40+): note as "mature adult requiring expert mentor transformation"
+SUPERHERO MISSION:
+- Career: ${career}
+- Location: ${location} 
+- Activity/Mission: ${activity}
 
-Core facial features to preserve in adult version:
-- Face shape and bone structure (will remain constant)
-- Eye shape, spacing, and color
-- Nose shape and proportions
-- Ear shape and size relative to head
-- Distinctive features (dimples, chin shape, eyebrow arch)
-- Smile characteristics and mouth shape
+TRANSFORMATION REQUIREMENTS:
+1. **Person Analysis**: Describe their current appearance (facial features, hair, skin tone, build, age estimate)
 
-Current appearance details:
-- Current height/build estimation
-- Hair color and texture (may change with age)
-- Skin tone with specific description
-- Any glasses or likely permanent accessories
+2. **Superhero Identity**: Transform them into a "${career}" superhero who ${activity} in ${location}, Singapore
+   - Keep their facial features recognizable 
+   - Design a superhero costume related to their career (${career})
+   - Add appropriate superpowers that match their mission
+   - Make them look heroic and inspiring
 
-Features that should mature in adult version:
-- Face should elongate and mature appropriately
-- Professional adult hairstyle evolution
-- Adult body proportions and height
-- Mature facial features while keeping identity
+3. **Singapore Setting**: Place them in ${location} with recognizable Singapore landmarks
+   - Show iconic architecture or features of ${location}
+   - Include Singapore cultural elements
+   - Make it clearly set in Singapore
 
-End with: "For age progression: transform from [current age] to professional adult (age 25-30)"`
+4. **Poster Composition**: 
+   - Dynamic action pose showing them performing: ${activity}
+   - Bright, colorful, inspiring superhero aesthetic
+   - Cinematic lighting and composition
+   - Professional poster quality
+
+FORMAT YOUR RESPONSE AS:
+"A superhero poster showing [person description] transformed into [superhero identity] in [Singapore location setting]. [Detailed scene description with costume, pose, powers, background, and action]."
+
+Focus on creating a vivid, detailed description that Imagen can use to generate an amazing superhero poster!`
       },
       {
         inlineData: {
@@ -72,14 +78,14 @@ End with: "For age progression: transform from [current age] to professional adu
     const result = await model.generateContent(parts);
     const description = result.response.text();
     
-    console.log('✅ [Gemini Vision] Analysis complete');
-    console.log('👤 [Gemini Vision] Generated description length:', description.length);
+    console.log('✅ [Gemini Vision] Superhero transformation complete');
+    console.log('🦸 [Gemini Vision] Generated description length:', description.length);
     
     return description.trim();
   } catch (error) {
-    console.error('❌ [Gemini Vision] Analysis failed:', error);
-    // Return a generic description if analysis fails
-    return "a person";
+    console.error('❌ [Gemini Vision] Superhero transformation failed:', error);
+    // Return a fallback superhero description
+    return `A superhero poster showing a person transformed into a ${career} superhero performing ${activity} in ${location}, Singapore. They wear a colorful costume and strike a heroic pose against the backdrop of Singapore's skyline.`;
   }
 }
 
@@ -123,7 +129,6 @@ export async function POST(request: NextRequest) {
 
     // Sanitize text inputs
     const sanitizedPrompt = sanitizeText(validatedData.prompt);
-    const sanitizedBgHint = validatedData.bgHint ? sanitizeText(validatedData.bgHint) : undefined;
 
     // Check for required environment variables
     const projectId = process.env.GOOGLE_PROJECT_ID;
@@ -206,106 +211,61 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // STEP 1: Analyze image with Gemini to get person description
+      // STEP 1: Generate superhero transformation description with Gemini
       
-      let personDescription: string;
+      let superheroDescription: string;
       try {
-        personDescription = await analyzeImageWithGemini(
+        superheroDescription = await generateSuperheroDescription(
           base64Match[2], 
           `image/${base64Match[1]}`, 
-          geminiApiKey
+          geminiApiKey,
+          validatedData.career || 'superhero',
+          validatedData.background || 'Singapore',
+          validatedData.activity || 'saving the day'
         );
         
-        if (personDescription === "a person") {
-          console.warn('⚠️ [Gemini Vision] Analysis returned generic fallback description');
-        }
+        console.log('🦸 [Step 1] Superhero description generated successfully');
       } catch (geminiError) {
-        console.error('❌ [Step 1] Gemini vision analysis failed:', geminiError);
-        personDescription = "a person with a friendly appearance";
+        console.error('❌ [Step 1] Gemini superhero transformation failed:', geminiError);
+        superheroDescription = `A superhero poster showing a person transformed into a ${validatedData.career || 'superhero'} superhero performing ${validatedData.activity || 'heroic duties'} in ${validatedData.background || 'Singapore'}. They wear a colorful costume and strike a heroic pose.`;
       }
       
-      // STEP 2: Create enhanced prompt combining person description with context
+      // STEP 2: Create enhanced prompt with explicit career, location, and activity details
       
-      // Extract age information from person description for better prompting
-      const descLower = personDescription.toLowerCase();
-      const isChild = descLower.includes('young child');
-      const isTeenager = descLower.includes('teenager');
-      const isYoungAdult = descLower.includes('young adult') && descLower.includes('career progression');
-      const isAdult = descLower.includes('adult requiring superhero transformation');
-      const isMatureAdult = descLower.includes('mature adult') || descLower.includes('expert mentor');
+      const careerType = validatedData.career || 'superhero';
+      const locationName = validatedData.background || 'Singapore';
+      const missionActivity = validatedData.activity || 'saving the day';
       
-      // Create age-appropriate progression messages
-      let ageProgression, transformationType, timeContext;
-      
-      if (isChild) {
-        ageProgression = "Show this young person grown up 20 years into the future as a successful adult professional (age 25-30). ";
-        transformationType = "future adult self";
-        timeContext = "in the year 2045";
-      } else if (isTeenager) {
-        ageProgression = "Show this teenager matured 10-15 years into the future as an established young professional (age 25-30). ";
-        transformationType = "future professional self";
-        timeContext = "in the year 2035";
-      } else if (isYoungAdult) {
-        ageProgression = "Transform this young adult into an experienced professional 5-10 years in the future (age 28-35), showing career advancement and expertise. ";
-        transformationType = "experienced professional self";
-        timeContext = "in the near future";
-      } else if (isAdult) {
-        ageProgression = "Transform this adult into a superhero version of themselves at their current age, with enhanced professional presence and heroic styling. ";
-        transformationType = "superhero professional self";
-        timeContext = "in present-day Singapore";
-      } else if (isMatureAdult) {
-        ageProgression = "Transform this distinguished professional into an expert mentor figure and superhero leader, showing wisdom and mastery in their field. ";
-        transformationType = "master mentor self";
-        timeContext = "at the peak of their career";
-      } else {
-        // Fallback for unclear age
-        ageProgression = "Transform into a confident, successful professional version of themselves. ";
-        transformationType = "best professional self";
-        timeContext = "in their prime";
-      }
-      
-      const enhancedPrompt = `${ageProgression}Create an inspiring poster showing ${personDescription}
-transformed into their ${transformationType} as a successful ${validatedData.career || "professional"} performing ${validatedData.activity || "professional duties with confidence"}.
-Setting: ${sanitizedBgHint || "Singapore"} ${timeContext}.
+      const enhancedPrompt = `SUPERHERO IDENTITY: ${careerType} superhero
+LOCATION: ${locationName}, Singapore
+MISSION: ${missionActivity}
 
-CRITICAL INSTRUCTIONS:
-${isChild || isTeenager ? 
-`- Age the person appropriately to show them as a mature adult professional (25-30 years old)
-- Show realistic adult development: mature facial structure, adult height and professional build` :
-isYoungAdult ?
-`- Show career progression: more experienced, confident, and established in their field
-- Slightly mature their appearance while maintaining youthful energy` :
-isAdult ?
-`- Maintain current age but enhance with superhero transformation
-- Show peak professional confidence and heroic presence` :
-isMatureAdult ?
-`- Show as distinguished expert and leader in their field
-- Emphasize wisdom, experience, and mentorship qualities` :
-`- Transform into their best professional self`}
-- Preserve their core facial identity: maintain eye shape, nose structure, face shape, and distinctive features
-- Professional attire and equipment appropriate for a ${validatedData.career || "professional"}
-- Confident, successful, inspiring superhero-style pose showing achievement and capability
-${isChild || isTeenager || isYoungAdult ? 
-`- Futuristic elements showing advanced technology and modern setting` :
-`- Contemporary professional setting with heroic enhancement`}
+${superheroDescription}
 
-Visual style: ${isChild || isTeenager ? "Aspirational 'future vision'" : isAdult || isMatureAdult ? "Heroic professional transformation" : "Career advancement"} poster. 
-Cinematic quality with vibrant colors. The person should be recognizable but ${isChild || isTeenager ? "professionally mature" : "heroically enhanced"}.
-Ultra-high resolution, sharp professional photography, suitable for large format printing.
-NO text, captions, watermarks, or written elements anywhere in the image.`;
+CRITICAL REQUIREMENTS:
+- Show them as a ${careerType} with career-appropriate costume, equipment, and superpowers
+- Set prominently in ${locationName} with recognizable Singapore landmarks and architecture
+- Dynamic action scene showing them ${missionActivity}
+- Professional ${careerType} elements integrated into superhero design
+- Singapore cultural elements and iconic ${locationName} features clearly visible
+
+VISUAL REQUIREMENTS:
+- Ultra-high resolution, cinematic quality
+- Vibrant, inspiring superhero poster aesthetic  
+- Sharp professional photography suitable for large format printing
+- Bright, colorful, and kid-friendly superhero movie style
+- Dynamic composition with dramatic lighting
+- ${locationName} landmarks prominently featured in background
+- Professional ${careerType} equipment and styling elements
+- Action pose demonstrating: ${missionActivity}
+- NO text, captions, watermarks, or written elements anywhere in the image
+
+STYLE: Inspirational superhero movie poster featuring a ${careerType} superhero in ${locationName}, Singapore.`;
       
-      // Validate prompt length (Imagen has limits)
-      const MAX_PROMPT_LENGTH = 2000;
-      // if (enhancedPrompt.length > MAX_PROMPT_LENGTH) {
-      //   console.warn(`⚠️ Prompt too long (${enhancedPrompt.length} chars), truncating to ${MAX_PROMPT_LENGTH}`);
-      // }
-      // console.log('🔍 [Step 2]  length of prompt:', enhancedPrompt.length);
-      // const finalPrompt = enhancedPrompt.length > MAX_PROMPT_LENGTH 
-      //   ? enhancedPrompt.substring(0, MAX_PROMPT_LENGTH - 3) + '...'
-      //   : enhancedPrompt;
+      // Use the enhanced prompt directly
       const finalPrompt = enhancedPrompt;
       console.log('====================================');
-      console.log('Prompt:', finalPrompt);
+      console.log('🦸 [Final Prompt]:', finalPrompt);
       console.log('====================================');
       
       
@@ -389,17 +349,17 @@ NO text, captions, watermarks, or written elements anywhere in the image.`;
           modelUsed: modelId,
           modelType: 'detailed',
           prompt: finalPrompt.substring(0, 300) + (finalPrompt.length > 300 ? '...' : ''),
-          personDescription: personDescription.substring(0, 200) + (personDescription.length > 200 ? '...' : ''),
+          superheroDescription: superheroDescription.substring(0, 200) + (superheroDescription.length > 200 ? '...' : ''),
           timestamp: new Date().toISOString(),
           hasUploadedPhoto: !!validatedData.selfieDataUrl,
           avatarUsed: validatedData.avatarSelection || null,
           aspectRatio: validatedData.aspect,
           apiProvider: 'Google Vertex AI Imagen 4 + Gemini Vision',
           mimeType,
-          generationType: 'text-to-image-with-vision-analysis',
+          generationType: 'superhero-transformation',
           modelVersion: 'imagen-4-with-gemini-vision',
           requiresClientOverlay: false,
-          approach: 'two-step: gemini-vision-analysis -> imagen-text-to-image'
+          approach: 'gemini-superhero-transformation -> imagen-poster-generation'
         }
       };
 
