@@ -356,9 +356,9 @@ export default function PosterFrame({
             <div>
               <h3 className="font-bold text-purple-600 mb-1">Style</h3>
               <p className="text-gray-700 text-sm">
-                {currentModel === 'face-match' ? '👤 Face Match' : 
-                 currentModel === 'gemini-flash' ? '⚡ Gemini Flash 2.5' : 
-                 '🎨 Fancy & Detailed'}
+                {currentModel === 'gemini-flash' ? '⚡ Smart Realistic' : 
+                 currentModel === 'detailed' ? '🎨 Fancy & Detailed' : 
+                 '👤 Face Match'}
               </p>
             </div>
           )}

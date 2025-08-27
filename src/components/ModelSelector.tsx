@@ -12,6 +12,20 @@ interface ModelSelectorProps {
 
 const models = [
   {
+    id: 'gemini-flash' as ModelType,
+    name: 'Smart Realistic',
+    emoji: '⚡',
+    description: 'AI-powered photorealistic transformation with intelligent face preservation',
+    features: [
+      'Best overall quality',
+      'Smart face preservation',
+      'Photorealistic results',
+      'Natural superhero integration'
+    ],
+    bestFor: 'Best quality - realistic superhero you',
+    gradient: 'from-green-500 to-emerald-500'
+  },
+  {
     id: 'detailed' as ModelType,
     name: 'Fancy and Detailed',
     emoji: '🎨',
@@ -22,7 +36,7 @@ const models = [
       'Creative interpretation',
       'Professional poster quality'
     ],
-    bestFor: 'Creative, stylized superhero art',
+    bestFor: 'Artistic, stylized poster art',
     gradient: 'from-purple-500 to-pink-500'
   },
   {
@@ -36,22 +50,8 @@ const models = [
       'Identity recognition',
       'Personal connection'
     ],
-    bestFor: 'Seeing yourself as the superhero',
+    bestFor: 'Direct face embedding',
     gradient: 'from-blue-500 to-teal-500'
-  },
-  {
-    id: 'gemini-flash' as ModelType,
-    name: 'Gemini Flash 2.5',
-    emoji: '⚡',
-    description: 'Photorealistic composite preserving your real face with natural lighting',
-    features: [
-      'Preserves actual facial features',
-      'Photorealistic composite',
-      'Natural lighting/shadows',
-      'Identity preservation'
-    ],
-    bestFor: 'Realistic face preservation',
-    gradient: 'from-green-500 to-emerald-500'
   }
 ];
 
@@ -131,7 +131,7 @@ export default function ModelSelector({ value, onChange, error }: ModelSelectorP
         className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center"
       >
         <div className="text-blue-700 text-sm">
-          <strong>💡 Tip:</strong> Choose &quot;Face Match&quot; for realistic embedding, &quot;Gemini Flash 2.5&quot; for photorealistic composites, or &quot;Fancy and Detailed&quot; for artistic superhero art!
+          <strong>💡 Tip:</strong> <strong>Smart Realistic</strong> is recommended for best results! Choose <strong>Fancy and Detailed</strong> for artistic style, or <strong>Face Match</strong> for direct embedding.
         </div>
       </motion.div>
 

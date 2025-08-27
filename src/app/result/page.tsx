@@ -101,7 +101,7 @@ export default function ResultPage() {
       console.log('👤 [Result Page] Has selfie:', !!selfieDataUrl);
 
       // Use user's selected model from poster data
-      const selectedModel = currentPosterData.selectedModel || 'detailed';
+      const selectedModel = currentPosterData.selectedModel || 'gemini-flash';
       console.log('🎯 [Result Page] Using selected model:', selectedModel);
       console.log('🎯 [Result Page] From poster data:', currentPosterData.selectedModel);
 
@@ -313,7 +313,7 @@ export default function ResultPage() {
           onAddToGallery={handleAddToGallery}
           onStartOver={handleStartOver}
           isLoading={isGenerating}
-          currentModel={currentPosterData.selectedModel || 'detailed'}
+          currentModel={currentPosterData.selectedModel || 'gemini-flash'}
           nextModel={null}
         />
 

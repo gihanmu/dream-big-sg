@@ -34,7 +34,7 @@ export default function DreamPage() {
     background: currentPosterData.background || '',
     activity: currentPosterData.activity || '',
     selfieDataUrl: '',
-    selectedModel: 'detailed' // Default to detailed model
+    selectedModel: 'gemini-flash' // Default to gemini-flash model
   });
   const [errors, setErrors] = useState<Partial<Record<keyof DreamFormData, string>>>({});
   const [isGenerating, setIsGenerating] = useState(false);
@@ -63,7 +63,7 @@ export default function DreamPage() {
         background: '',
         activity: '',
         selfieDataUrl: '',
-        selectedModel: 'detailed'
+        selectedModel: 'gemini-flash'
       });
       setCurrentStep(0);
       setErrors({});

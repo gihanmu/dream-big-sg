@@ -3,6 +3,7 @@ import { GoogleAuth } from 'google-auth-library';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { z } from 'zod';
 import { imagenRateLimiter, sanitizeText, validateEnvironment } from '@/lib/security';
+import { getLocationDisplayName } from '@/lib/prompts';
 
 const generateRequestSchema = z.object({
   prompt: z.string(),
@@ -130,7 +131,7 @@ export async function POST(request: NextRequest) {
     const geminiApiKey = process.env.GEMINI_API_KEY;
     
     // Determine which model to use based on user selection
-    const selectedModel = validatedData.selectedModel || 'detailed';
+    const selectedModel = validatedData.selectedModel || 'gemini-flash';
     
     // Debug logging for environment variables
     console.log('🔍 [Debug] Environment IMAGEN_MODEL_ID:', process.env.IMAGEN_MODEL_ID);
@@ -200,13 +201,13 @@ export async function POST(request: NextRequest) {
           'image/jpeg',
           geminiApiKey,
           validatedData.career || 'superhero',
-          validatedData.background || 'Singapore',
+          getLocationDisplayName(validatedData.background || 'singapore'),
           validatedData.activity || 'saving the day'
         );
 
         // Create the same enhanced prompt structure as other models
         const careerType = validatedData.career || 'superhero';
-        const locationName = validatedData.background || 'Singapore';
+        const locationName = getLocationDisplayName(validatedData.background || 'singapore');
         const missionActivity = validatedData.activity || 'saving the day';
         
         const prompt = `${superheroDescription}
@@ -370,20 +371,20 @@ TRANSFORM: Clothing, setting, pose, and background into superhero poster scene`;
           `image/${base64Match[1]}`, 
           geminiApiKey,
           validatedData.career || 'superhero',
-          validatedData.background || 'Singapore',
+          getLocationDisplayName(validatedData.background || 'singapore'),
           validatedData.activity || 'saving the day'
         );
         
         console.log('🦸 [Step 1] Photo analysis for transformation completed successfully');
       } catch (geminiError) {
         console.error('❌ [Step 1] Gemini photo analysis failed:', geminiError);
-        superheroDescription = `Transform this person into a ${validatedData.career || 'superhero'} superhero performing ${validatedData.activity || 'heroic duties'} in ${validatedData.background || 'Singapore'}. They wear a colorful costume and strike a heroic pose while preserving their identity.`;
+        superheroDescription = `Transform this person into a ${validatedData.career || 'superhero'} superhero performing ${validatedData.activity || 'heroic duties'} in ${getLocationDisplayName(validatedData.background || 'singapore')}. They wear a colorful costume and strike a heroic pose while preserving their identity.`;
       }
       
       // STEP 2: Create transformation prompt for image-to-image generation
       
       const careerType = validatedData.career || 'superhero';
-      const locationName = validatedData.background || 'Singapore';
+      const locationName = getLocationDisplayName(validatedData.background || 'singapore');
       const missionActivity = validatedData.activity || 'saving the day';
       
       // For image-to-image generation, use transformation-focused prompt
