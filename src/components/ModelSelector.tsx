@@ -22,7 +22,7 @@ const models = [
       'Photorealistic results',
       'Natural superhero integration'
     ],
-    bestFor: 'Best quality - realistic superhero you',
+    bestFor: 'Recommended',
     gradient: 'from-green-500 to-emerald-500'
   },
   {
@@ -36,7 +36,7 @@ const models = [
       'Creative interpretation',
       'Professional poster quality'
     ],
-    bestFor: 'Artistic, stylized poster art',
+    bestFor: 'Artistic Style',
     gradient: 'from-purple-500 to-pink-500'
   },
   {
@@ -50,7 +50,7 @@ const models = [
       'Identity recognition',
       'Personal connection'
     ],
-    bestFor: 'Direct face embedding',
+    bestFor: 'Face Match',
     gradient: 'from-blue-500 to-teal-500'
   }
 ];
@@ -82,13 +82,15 @@ export default function ModelSelector({ value, onChange, error }: ModelSelectorP
           >
             {/* Header */}
             <div className="flex items-center space-x-3 mb-4">
-              <div className="text-4xl">{model.emoji}</div>
-              <div>
-                <h3 className="text-xl font-bold text-gray-800">
+              <div className="text-4xl flex-shrink-0">{model.emoji}</div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-xl font-bold text-gray-800 truncate">
                   {model.name}
                 </h3>
-                <div className={`inline-block px-3 py-1 rounded-full text-xs font-medium text-white bg-gradient-to-r ${model.gradient}`}>
-                  {model.bestFor}
+                <div className={`inline-block px-2 py-1 sm:px-3 sm:py-1 rounded-full text-xs sm:text-xs lg:text-sm font-medium text-white bg-gradient-to-r ${model.gradient} text-center leading-tight max-w-full`}>
+                  <span className="block sm:inline truncate">
+                    {model.bestFor}
+                  </span>
                 </div>
               </div>
             </div>
