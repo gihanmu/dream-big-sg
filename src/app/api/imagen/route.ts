@@ -15,7 +15,7 @@ const generateRequestSchema = z.object({
   background: z.string().optional(),
   activity: z.string().optional(),
   model: z.enum(['detailed']).optional().default('detailed'),
-  selectedModel: z.enum(['detailed', 'face-match']).optional(),
+  selectedModel: z.enum(['detailed', 'face-match', 'gemini-flash']).optional(),
 });
 
 // Function to generate superhero transformation description with Gemini
@@ -144,6 +144,9 @@ export async function POST(request: NextRequest) {
     if (selectedModel === 'detailed') {
       modelId = process.env.IMAGEN_MODEL_ID || 'imagen-4.0-ultra-generate-001';
       console.log('✅ [Model Selection] DETAILED model chosen');
+    } else if (selectedModel === 'gemini-flash') {
+      modelId = 'gemini-2.5-flash-image-preview';
+      console.log('✅ [Model Selection] GEMINI-FLASH model chosen');
     } else {
       modelId = process.env.IMAGEN_MODEL_ID_3 || 'imagen-3.0-capability-001';
       console.log('✅ [Model Selection] FACE-MATCH model chosen');
@@ -168,9 +171,142 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // GEMINI FLASH 2.5 IMPLEMENTATION
+    if (selectedModel === 'gemini-flash') {
+      console.log('🚀 [Gemini Flash] Starting photorealistic composite generation');
+      
+      // Validate that photo is provided
+      if (!validatedData.selfieDataUrl) {
+        return NextResponse.json(
+          { error: 'Camera photo is required for Gemini Flash' },
+          { status: 400 }
+        );
+      }
 
+      try {
+        const genAI = new GoogleGenerativeAI(geminiApiKey);
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-image-preview' });
 
+        // Extract base64 data from data URL
+        const base64Match = validatedData.selfieDataUrl.match(/^data:image\/[a-zA-Z+]+;base64,(.+)$/);
+        if (!base64Match) {
+          throw new Error('Invalid image format');
+        }
+        const base64 = base64Match[1];
 
+        // Generate superhero description using Gemini Vision (same as other models)
+        const superheroDescription = await generateSuperheroDescription(
+          base64,
+          'image/jpeg',
+          geminiApiKey,
+          validatedData.career || 'superhero',
+          validatedData.background || 'Singapore',
+          validatedData.activity || 'saving the day'
+        );
+
+        // Create the same enhanced prompt structure as other models
+        const careerType = validatedData.career || 'superhero';
+        const locationName = validatedData.background || 'Singapore';
+        const missionActivity = validatedData.activity || 'saving the day';
+        
+        const prompt = `${superheroDescription}
+
+TRANSFORMATION INSTRUCTIONS:
+- Transform the person in the reference image into a ${careerType} superhero
+- Keep their facial features, identity, and recognizable characteristics intact
+- Change their clothing to ${careerType} superhero costume with cape and heroic styling
+- Place them in ${locationName}, Singapore with iconic landmarks visible
+- Show them performing: ${missionActivity}
+- Dynamic superhero action pose with confidence and power
+
+SETTING: ${locationName}, Singapore
+- Include recognizable landmarks and architecture of ${locationName}
+- Singapore cultural elements and modern cityscape
+- Professional poster composition with cinematic lighting
+
+COSTUME DESIGN:
+- ${careerType}-themed superhero outfit with professional elements
+- Bright, colorful, heroic styling appropriate for career
+- Cape, emblem, and superhero accessories
+- Kid-friendly and inspiring design
+
+VISUAL STYLE:
+- Ultra-high resolution superhero movie poster aesthetic
+- Vibrant colors with dramatic lighting
+- Professional photography quality
+- NO text, captions, or watermarks anywhere in image
+
+PRESERVE: Person's face, identity, and key physical characteristics from reference image
+TRANSFORM: Clothing, setting, pose, and background into superhero poster scene`;
+
+        console.log('📝 [Gemini Flash] Using prompt:', prompt);
+
+        const parts = [
+          { text: prompt },
+          {
+            inlineData: {
+              mimeType: 'image/jpeg',
+              data: base64
+            }
+          }
+        ];
+
+        const result = await model.generateContent(parts);
+        const response = result.response;
+
+        // Extract both text and image from response parts
+        let generatedText = '';
+        let generatedImageBase64 = '';
+
+        console.log('🔍 [Gemini Flash] Raw response structure:', {
+          hasCandidates: !!response.candidates,
+          candidatesLength: response.candidates?.length || 0
+        });
+
+        if (response.candidates && response.candidates[0]) {
+          const parts = response.candidates[0].content.parts;
+          console.log('🔍 [Gemini Flash] Response parts:', parts.length);
+          
+          for (const part of parts) {
+            if (part.text) {
+              generatedText += part.text;
+              console.log('📝 [Gemini Flash] Found text part:', part.text.substring(0, 100) + '...');
+            } else if (part.inlineData) {
+              generatedImageBase64 = part.inlineData.data;
+              console.log('🖼️ [Gemini Flash] Found image part, size:', part.inlineData.data.length, 'characters');
+            }
+          }
+        }
+
+        if (!generatedImageBase64) {
+          console.error('❌ [Gemini Flash] No image generated in response');
+          throw new Error('No image generated by Gemini Flash. Response may contain only text.');
+        }
+
+        console.log('✅ [Gemini Flash] Successfully extracted image data');
+
+        return NextResponse.json({
+          success: true,
+          imageUrl: `data:image/png;base64,${generatedImageBase64}`,
+          metadata: {
+            generationType: 'gemini-flash',
+            model: 'gemini-2.5-flash-image-preview',
+            prompt: prompt,
+            textResponse: generatedText
+          }
+        });
+
+      } catch (error) {
+        console.error('❌ [Gemini Flash] Generation failed:', error);
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: `Gemini Flash generation failed: ${error instanceof Error ? error.message : 'Unknown error'}` 
+          },
+          { status: 500 }
+        );
+      }
+    }
     
     // REAL IMAGEN API IMPLEMENTATION
     try {

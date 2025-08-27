@@ -6,7 +6,7 @@ export interface PosterData {
   background: string;
   activity: string;
   childName?: string;
-  selectedModel?: 'detailed' | 'face-match';
+  selectedModel?: 'detailed' | 'face-match' | 'gemini-flash';
 }
 
 // Helper function to get detailed location descriptions for better AI understanding

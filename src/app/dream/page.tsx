@@ -20,7 +20,7 @@ type DreamFormData = {
   background: string;
   activity: string;
   selfieDataUrl: string;
-  selectedModel: 'detailed' | 'face-match';
+  selectedModel: 'detailed' | 'face-match' | 'gemini-flash';
 };
 
 export default function DreamPage() {

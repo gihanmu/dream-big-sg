@@ -15,8 +15,8 @@ interface PosterFrameProps {
   onAddToGallery: () => void;
   onStartOver: () => void;
   isLoading?: boolean;
-  currentModel?: 'detailed' | 'face-match' | null;
-  nextModel?: 'detailed' | 'face-match' | null;
+  currentModel?: 'detailed' | 'face-match' | 'gemini-flash' | null;
+  nextModel?: 'detailed' | 'face-match' | 'gemini-flash' | null;
 }
 
 // Generate stable sparkle positions
@@ -356,7 +356,9 @@ export default function PosterFrame({
             <div>
               <h3 className="font-bold text-purple-600 mb-1">Style</h3>
               <p className="text-gray-700 text-sm">
-                {currentModel === 'face-match' ? '👤 Face Match' : '🎨 Fancy & Detailed'}
+                {currentModel === 'face-match' ? '👤 Face Match' : 
+                 currentModel === 'gemini-flash' ? '⚡ Gemini Flash 2.5' : 
+                 '🎨 Fancy & Detailed'}
               </p>
             </div>
           )}

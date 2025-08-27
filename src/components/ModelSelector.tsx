@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 
-export type ModelType = 'detailed' | 'face-match';
+export type ModelType = 'detailed' | 'face-match' | 'gemini-flash';
 
 interface ModelSelectorProps {
   value: ModelType;
@@ -38,6 +38,20 @@ const models = [
     ],
     bestFor: 'Seeing yourself as the superhero',
     gradient: 'from-blue-500 to-teal-500'
+  },
+  {
+    id: 'gemini-flash' as ModelType,
+    name: 'Gemini Flash 2.5',
+    emoji: '⚡',
+    description: 'Photorealistic composite preserving your real face with natural lighting',
+    features: [
+      'Preserves actual facial features',
+      'Photorealistic composite',
+      'Natural lighting/shadows',
+      'Identity preservation'
+    ],
+    bestFor: 'Realistic face preservation',
+    gradient: 'from-green-500 to-emerald-500'
   }
 ];
 
@@ -53,7 +67,7 @@ export default function ModelSelector({ value, onChange, error }: ModelSelectorP
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {models.map((model) => (
           <motion.button
             key={model.id}
@@ -117,7 +131,7 @@ export default function ModelSelector({ value, onChange, error }: ModelSelectorP
         className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center"
       >
         <div className="text-blue-700 text-sm">
-          <strong>💡 Tip:</strong> Choose &quot;Face Match&quot; to see yourself in the poster, or &quot;Fancy and Detailed&quot; for artistic superhero art!
+          <strong>💡 Tip:</strong> Choose &quot;Face Match&quot; for realistic embedding, &quot;Gemini Flash 2.5&quot; for photorealistic composites, or &quot;Fancy and Detailed&quot; for artistic superhero art!
         </div>
       </motion.div>
 
