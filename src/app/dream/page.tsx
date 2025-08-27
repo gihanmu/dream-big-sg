@@ -8,6 +8,7 @@ import CareerTypeahead from '@/components/CareerTypeahead';
 import CustomCareerModal from '@/components/CustomCareerModal';
 import LocationImageGrid from '@/components/LocationImageGrid';
 import MissionBuilder from '@/components/MissionBuilder';
+import ModelSelector, { type ModelType } from '@/components/ModelSelector';
 import { PosterData } from '@/lib/prompts';
 import { CareerOption } from '@/lib/careers';
 import { LocationOption } from '@/lib/locations';
@@ -19,6 +20,7 @@ type DreamFormData = {
   background: string;
   activity: string;
   selfieDataUrl: string;
+  selectedModel: 'detailed' | 'face-match';
 };
 
 export default function DreamPage() {
@@ -31,7 +33,8 @@ export default function DreamPage() {
     career: currentPosterData.career || '',
     background: currentPosterData.background || '',
     activity: currentPosterData.activity || '',
-    selfieDataUrl: ''
+    selfieDataUrl: '',
+    selectedModel: 'detailed' // Default to detailed model
   });
   const [errors, setErrors] = useState<Partial<Record<keyof DreamFormData, string>>>({});
   const [isGenerating, setIsGenerating] = useState(false);
@@ -59,7 +62,8 @@ export default function DreamPage() {
         career: '',
         background: '',
         activity: '',
-        selfieDataUrl: ''
+        selfieDataUrl: '',
+        selectedModel: 'detailed'
       });
       setCurrentStep(0);
       setErrors({});
@@ -81,7 +85,8 @@ export default function DreamPage() {
     { title: 'Pick Your Super Job', subtitle: 'What kind of superhero would you like to be' },
     { title: 'Pick Your Adventure Place', subtitle: 'Where in Singapore will your story happen' },
     { title: 'Plan Your Mission', subtitle: 'Tap one from each row to build your story.' },
-    { title: 'Add Your Face', subtitle: 'Show us the hero!' }
+    { title: 'Add Your Face', subtitle: 'Show us the hero!' },
+    { title: 'Choose Your Style', subtitle: 'How would you like your poster to be created?' }
   ];
 
   const validateStep = (step: number): boolean => {
@@ -102,6 +107,11 @@ export default function DreamPage() {
       case 3:
         if (!formData.selfieDataUrl) {
           stepErrors.selfieDataUrl = 'Please take a selfie photo';
+        }
+        break;
+      case 4:
+        if (!formData.selectedModel) {
+          stepErrors.selectedModel = 'Please select a poster style';
         }
         break;
     }
@@ -158,7 +168,8 @@ export default function DreamPage() {
       const posterData: PosterData = {
         career: formData.career,
         background: formData.background,
-        activity: formData.activity
+        activity: formData.activity,
+        selectedModel: formData.selectedModel
       };
 
       updatePosterData(posterData);
@@ -251,6 +262,24 @@ export default function DreamPage() {
           </motion.div>
         );
 
+      case 4:
+        return (
+          <motion.div
+            key="model-selector"
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -50 }}
+          >
+            <ModelSelector
+              value={formData.selectedModel}
+              onChange={(model: ModelType) => {
+                setFormData({ ...formData, selectedModel: model });
+                setErrors({ ...errors, selectedModel: undefined });
+              }}
+              error={errors.selectedModel}
+            />
+          </motion.div>
+        );
 
       default:
         return null;

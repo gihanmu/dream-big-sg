@@ -15,8 +15,8 @@ interface PosterFrameProps {
   onAddToGallery: () => void;
   onStartOver: () => void;
   isLoading?: boolean;
-  currentModel?: 'realistic' | 'detailed' | 'lucky' | null;
-  nextModel?: 'realistic' | 'detailed' | 'lucky' | null;
+  currentModel?: 'detailed' | 'face-match' | null;
+  nextModel?: 'detailed' | 'face-match' | null;
 }
 
 // Generate stable sparkle positions
@@ -41,7 +41,8 @@ export default function PosterFrame({
   onRegenerate,
   onAddToGallery,
   onStartOver,
-  isLoading = false
+  isLoading = false,
+  currentModel
 }: PosterFrameProps) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -338,7 +339,7 @@ export default function PosterFrame({
         className="mt-4 bg-white/90 backdrop-blur-sm rounded-xl p-6 shadow-lg"
       >
         <h2 className="text-2xl font-bold text-gray-800 mb-4 text-center">{title}</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
           <div>
             <h3 className="font-bold text-purple-600 mb-1">Career</h3>
             <p className="text-gray-700">{getCareerDisplayName(career)}</p>
@@ -351,6 +352,14 @@ export default function PosterFrame({
             <h3 className="font-bold text-purple-600 mb-1">Activity</h3>
             <p className="text-gray-700 text-sm">{activity}</p>
           </div>
+          {currentModel && (
+            <div>
+              <h3 className="font-bold text-purple-600 mb-1">Style</h3>
+              <p className="text-gray-700 text-sm">
+                {currentModel === 'face-match' ? '👤 Face Match' : '🎨 Fancy & Detailed'}
+              </p>
+            </div>
+          )}
         </div>
       </motion.div>
 

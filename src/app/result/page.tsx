@@ -100,9 +100,10 @@ export default function ResultPage() {
       console.log('📝 [Result Page] Generated prompt:', prompt);
       console.log('👤 [Result Page] Has selfie:', !!selfieDataUrl);
 
-      // Use single model only
-      const selectedModel = 'detailed';
-      console.log('🎯 [Result Page] Using model:', selectedModel);
+      // Use user's selected model from poster data
+      const selectedModel = currentPosterData.selectedModel || 'detailed';
+      console.log('🎯 [Result Page] Using selected model:', selectedModel);
+      console.log('🎯 [Result Page] From poster data:', currentPosterData.selectedModel);
 
       const requestData = {
         prompt,
@@ -112,7 +113,7 @@ export default function ResultPage() {
         aspect: '4:3',
         selfieDataUrl,
         bgHint: currentPosterData.background,
-        model: selectedModel
+        selectedModel: selectedModel // Fixed: use selectedModel instead of model
       };
       
       console.log('🚀 [Result Page] Sending request to /api/imagen:', requestData);
@@ -312,7 +313,7 @@ export default function ResultPage() {
           onAddToGallery={handleAddToGallery}
           onStartOver={handleStartOver}
           isLoading={isGenerating}
-          currentModel={null}
+          currentModel={currentPosterData.selectedModel || 'detailed'}
           nextModel={null}
         />
 

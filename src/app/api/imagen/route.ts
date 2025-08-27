@@ -15,6 +15,7 @@ const generateRequestSchema = z.object({
   background: z.string().optional(),
   activity: z.string().optional(),
   model: z.enum(['detailed']).optional().default('detailed'),
+  selectedModel: z.enum(['detailed', 'face-match']).optional(),
 });
 
 // Function to generate superhero transformation description with Gemini
@@ -35,37 +36,30 @@ async function generateSuperheroDescription(
 
     const parts = [
       {
-        text: `Create a detailed superhero poster description by analyzing this photo and transforming the person into a Singapore superhero.
+        text: `Analyze this person's photo to help with image-to-image transformation into a Singapore superhero.
 
-SUPERHERO MISSION:
-- Career: ${career}
-- Location: ${location} 
-- Activity/Mission: ${activity}
+TRANSFORMATION TARGET:
+- Career: ${career} superhero
+- Location: ${location}, Singapore
+- Mission: ${activity}
 
-TRANSFORMATION REQUIREMENTS:
-1. **Person Analysis**: Describe their current appearance (facial features, hair, skin tone, build, age estimate)
+ANALYSIS NEEDED:
+1. **Current Appearance**: Describe their key features that should be preserved (face shape, eye color, hair texture, skin tone, distinctive features)
 
-2. **Superhero Identity**: Transform them into a "${career}" superhero who ${activity} in ${location}, Singapore
-   - Keep their facial features recognizable 
-   - Design a superhero costume related to their career (${career})
-   - Add appropriate superpowers that match their mission
-   - Make them look heroic and inspiring
+2. **Transformation Vision**: How to transform them while keeping their identity:
+   - What ${career} superhero costume would suit them?
+   - How should they pose while ${activity}?
+   - What superpowers match both the career and their appearance?
 
-3. **Singapore Setting**: Place them in ${location} with recognizable Singapore landmarks
-   - Show iconic architecture or features of ${location}
-   - Include Singapore cultural elements
-   - Make it clearly set in Singapore
+3. **Scene Description**: Describe the ideal transformation scene:
+   - Them in ${career} superhero costume at ${location}
+   - Performing ${activity} with heroic pose
+   - Singapore landmarks of ${location} in background
+   - Professional poster composition
 
-4. **Poster Composition**: 
-   - Dynamic action pose showing them performing: ${activity}
-   - Bright, colorful, inspiring superhero aesthetic
-   - Cinematic lighting and composition
-   - Professional poster quality
+FORMAT: "Transform this person into a ${career} superhero in ${location}. [Detailed transformation description focusing on costume, pose, setting, and action while preserving their identity]."
 
-FORMAT YOUR RESPONSE AS:
-"A superhero poster showing [person description] transformed into [superhero identity] in [Singapore location setting]. [Detailed scene description with costume, pose, powers, background, and action]."
-
-Focus on creating a vivid, detailed description that Imagen can use to generate an amazing superhero poster!`
+Focus on TRANSFORMATION rather than creation - we want to change the scene while keeping the person's identity intact.`
       },
       {
         inlineData: {
@@ -135,9 +129,29 @@ export async function POST(request: NextRequest) {
     const location = process.env.GOOGLE_LOCATION || 'us-central1';
     const geminiApiKey = process.env.GEMINI_API_KEY;
     
-    // Use single model only
-    const modelId = process.env.IMAGEN_MODEL_ID || 'imagen-4.0-ultra-generate-001';
+    // Determine which model to use based on user selection
+    const selectedModel = validatedData.selectedModel || 'detailed';
+    
+    // Debug logging for environment variables
+    console.log('🔍 [Debug] Environment IMAGEN_MODEL_ID:', process.env.IMAGEN_MODEL_ID);
+    console.log('🔍 [Debug] Environment IMAGEN_MODEL_ID_3:', process.env.IMAGEN_MODEL_ID_3);
+    console.log('🔍 [Debug] User selectedModel from request:', validatedData.selectedModel);
+    console.log('🔍 [Debug] Final selectedModel (with fallback):', selectedModel);
+    console.log('🔍 [Debug] typeof selectedModel:', typeof selectedModel);
+    
+    // More robust model ID selection with explicit fallbacks
+    let modelId: string;
+    if (selectedModel === 'detailed') {
+      modelId = process.env.IMAGEN_MODEL_ID || 'imagen-4.0-ultra-generate-001';
+      console.log('✅ [Model Selection] DETAILED model chosen');
+    } else {
+      modelId = process.env.IMAGEN_MODEL_ID_3 || 'imagen-3.0-capability-001';
+      console.log('✅ [Model Selection] FACE-MATCH model chosen');
+    }
+    
+    console.log('🎯 [Model] Selected:', selectedModel);
     console.log('🎯 [Model] Using:', modelId);
+    console.log('🎯 [Model] Logic check - selectedModel === "detailed":', selectedModel === 'detailed');
    
     if (!projectId) {
       return NextResponse.json(
@@ -211,7 +225,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // STEP 1: Generate superhero transformation description with Gemini
+      // STEP 1: Analyze photo for image-to-image transformation with Gemini
       
       let superheroDescription: string;
       try {
@@ -224,43 +238,48 @@ export async function POST(request: NextRequest) {
           validatedData.activity || 'saving the day'
         );
         
-        console.log('🦸 [Step 1] Superhero description generated successfully');
+        console.log('🦸 [Step 1] Photo analysis for transformation completed successfully');
       } catch (geminiError) {
-        console.error('❌ [Step 1] Gemini superhero transformation failed:', geminiError);
-        superheroDescription = `A superhero poster showing a person transformed into a ${validatedData.career || 'superhero'} superhero performing ${validatedData.activity || 'heroic duties'} in ${validatedData.background || 'Singapore'}. They wear a colorful costume and strike a heroic pose.`;
+        console.error('❌ [Step 1] Gemini photo analysis failed:', geminiError);
+        superheroDescription = `Transform this person into a ${validatedData.career || 'superhero'} superhero performing ${validatedData.activity || 'heroic duties'} in ${validatedData.background || 'Singapore'}. They wear a colorful costume and strike a heroic pose while preserving their identity.`;
       }
       
-      // STEP 2: Create enhanced prompt with explicit career, location, and activity details
+      // STEP 2: Create transformation prompt for image-to-image generation
       
       const careerType = validatedData.career || 'superhero';
       const locationName = validatedData.background || 'Singapore';
       const missionActivity = validatedData.activity || 'saving the day';
       
-      const enhancedPrompt = `SUPERHERO IDENTITY: ${careerType} superhero
-LOCATION: ${locationName}, Singapore
-MISSION: ${missionActivity}
+      // For image-to-image generation, use transformation-focused prompt
+      const enhancedPrompt = `${superheroDescription}
 
-${superheroDescription}
+TRANSFORMATION INSTRUCTIONS:
+- Transform the person in the reference image into a ${careerType} superhero
+- Keep their facial features, identity, and recognizable characteristics intact
+- Change their clothing to ${careerType} superhero costume with cape and heroic styling
+- Place them in ${locationName}, Singapore with iconic landmarks visible
+- Show them performing: ${missionActivity}
+- Dynamic superhero action pose with confidence and power
 
-CRITICAL REQUIREMENTS:
-- Show them as a ${careerType} with career-appropriate costume, equipment, and superpowers
-- Set prominently in ${locationName} with recognizable Singapore landmarks and architecture
-- Dynamic action scene showing them ${missionActivity}
-- Professional ${careerType} elements integrated into superhero design
-- Singapore cultural elements and iconic ${locationName} features clearly visible
+SETTING: ${locationName}, Singapore
+- Include recognizable landmarks and architecture of ${locationName}
+- Singapore cultural elements and modern cityscape
+- Professional poster composition with cinematic lighting
 
-VISUAL REQUIREMENTS:
-- Ultra-high resolution, cinematic quality
-- Vibrant, inspiring superhero poster aesthetic  
-- Sharp professional photography suitable for large format printing
-- Bright, colorful, and kid-friendly superhero movie style
-- Dynamic composition with dramatic lighting
-- ${locationName} landmarks prominently featured in background
-- Professional ${careerType} equipment and styling elements
-- Action pose demonstrating: ${missionActivity}
-- NO text, captions, watermarks, or written elements anywhere in the image
+COSTUME DESIGN:
+- ${careerType}-themed superhero outfit with professional elements
+- Bright, colorful, heroic styling appropriate for career
+- Cape, emblem, and superhero accessories
+- Kid-friendly and inspiring design
 
-STYLE: Inspirational superhero movie poster featuring a ${careerType} superhero in ${locationName}, Singapore.`;
+VISUAL STYLE:
+- Ultra-high resolution superhero movie poster aesthetic
+- Vibrant colors with dramatic lighting
+- Professional photography quality
+- NO text, captions, or watermarks anywhere in image
+
+PRESERVE: Person's face, identity, and key physical characteristics from reference image
+TRANSFORM: Clothing, setting, pose, and background into superhero poster scene`;
       
       // Use the enhanced prompt directly
       const finalPrompt = enhancedPrompt;
@@ -269,25 +288,67 @@ STYLE: Inspirational superhero movie poster featuring a ${careerType} superhero 
       console.log('====================================');
       
       
-      // STEP 3: Prepare request for Imagen API with text-only format
+      // STEP 3: Prepare request for Imagen API based on selected model
       
-      // Always use imagen-4.0-ultra-generate-001 with text-only payload
-      const requestPayload = {
-        instances: [
-          {
-            prompt: finalPrompt
+      const base64 = base64Match[2];
+      let requestPayload;
+      
+      console.log('🔍 [Debug] Request payload logic - selectedModel:', selectedModel);
+      console.log('🔍 [Debug] About to check: selectedModel === "face-match":', selectedModel === 'face-match');
+      
+      if (selectedModel === 'face-match') {
+        console.log('✅ [Debug] Taking FACE-MATCH path (reference image)');
+        // Use imagen-3.0-capability-001 with reference image payload for image-to-image generation
+        requestPayload = {
+          instances: [
+            {
+              prompt: finalPrompt,
+              referenceImages: [
+                {
+                  referenceType: "REFERENCE_TYPE_SUBJECT",
+                  referenceId: 1,
+                  referenceImage: {
+                    bytesBase64Encoded: base64
+                  },
+                  subjectImageConfig: {
+                    subjectType: "SUBJECT_TYPE_PERSON",
+                    subjectDescription: "person to transform into superhero"
+                  }
+                }
+              ]
+            }
+          ],
+          parameters: {
+            sampleCount: 1,
+            aspectRatio: validatedData.aspect.replace(':', ':'),
+            safetyFilterLevel: "block_few",
+            personGeneration: "ALLOW_ALL",
+            outputDimension: {
+              widthPixels: 4096,
+              heightPixels: 4096
+            }
           }
-        ],
-        parameters: {
-          sampleCount: 1,
-          aspectRatio: validatedData.aspect.replace(':', ':'),
-          safetyFilterLevel: "block_few",
-          outputDimension: {
-            widthPixels: 4096,
-            heightPixels: 4096
+        };
+      } else {
+        console.log('✅ [Debug] Taking DETAILED path (text-only)');
+        // Use imagen-4.0-ultra-generate-001 with text-only payload for detailed generation
+        requestPayload = {
+          instances: [
+            {
+              prompt: finalPrompt
+            }
+          ],
+          parameters: {
+            sampleCount: 1,
+            aspectRatio: validatedData.aspect.replace(':', ':'),
+            safetyFilterLevel: "block_few",
+            outputDimension: {
+              widthPixels: 4096,
+              heightPixels: 4096
+            }
           }
-        }
-      };
+        };
+      }
 
       // STEP 4: Make the API call to Imagen
       console.log('🚀 [Imagen API] Calling model:', modelId);
@@ -347,19 +408,28 @@ STYLE: Inspirational superhero movie poster featuring a ${careerType} superhero 
         imageUrl: `data:${mimeType};base64,${imageBase64}`,
         metadata: {
           modelUsed: modelId,
-          modelType: 'detailed',
+          modelType: selectedModel,
+          selectedModel: selectedModel,
           prompt: finalPrompt.substring(0, 300) + (finalPrompt.length > 300 ? '...' : ''),
           superheroDescription: superheroDescription.substring(0, 200) + (superheroDescription.length > 200 ? '...' : ''),
           timestamp: new Date().toISOString(),
           hasUploadedPhoto: !!validatedData.selfieDataUrl,
           avatarUsed: validatedData.avatarSelection || null,
           aspectRatio: validatedData.aspect,
-          apiProvider: 'Google Vertex AI Imagen 4 + Gemini Vision',
+          apiProvider: selectedModel === 'face-match' 
+            ? 'Google Vertex AI Imagen 3 + Gemini Vision' 
+            : 'Google Vertex AI Imagen 4 + Gemini Vision',
           mimeType,
-          generationType: 'superhero-transformation',
-          modelVersion: 'imagen-4-with-gemini-vision',
+          generationType: selectedModel === 'face-match' 
+            ? 'image-to-image-superhero-transformation'
+            : 'text-to-image-superhero-creation',
+          modelVersion: selectedModel === 'face-match' 
+            ? 'imagen-3-with-reference-image'
+            : 'imagen-4-text-generation',
           requiresClientOverlay: false,
-          approach: 'gemini-superhero-transformation -> imagen-poster-generation'
+          approach: selectedModel === 'face-match'
+            ? 'gemini-analysis -> imagen-3-reference-image-transformation'
+            : 'gemini-analysis -> imagen-4-text-to-image-generation'
         }
       };
 
